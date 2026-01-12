@@ -89,6 +89,46 @@
 
         .mjx-container { margin: 1.2em 0 !important; font-size: 1.1em !important; display: block !important; text-align: center; max-width: 100%; overflow-x: auto; }
 
+        /* 思考中动画 */
+        .thinking {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 16px;
+            color: #1a2980;
+        }
+        
+        .thinking-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            animation: thinking-bounce 1.4s infinite ease-in-out;
+        }
+        
+        .thinking-dot:nth-child(1) {
+            animation-delay: 0s;
+        }
+        
+        .thinking-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .thinking-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes thinking-bounce {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.7;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+
         #desmos-container { height: 320px; border-top: 1px solid #eee; display: none; }
         .tool-bar { padding: 10px 20px; background: #f8f9fa; border-top: 1px solid #eee; display: flex; gap: 10px; }
         .tool-btn { font-size: 12px; padding: 6px 15px; border-radius: 20px; border: 1px solid #1a2980; color: #1a2980; cursor: pointer; background: white; transition: all 0.2s; }
@@ -399,7 +439,7 @@
             messageInput.value = '';
             sendBtn.disabled = true;
 
-            const aiDiv = addMessageToUI('ai', '思考中...');
+            const aiDiv = addMessageToUI('ai', '<span class="thinking">思考中<span class="thinking-dot"></span><span class="thinking-dot"></span><span class="thinking-dot"></span></span>');
             let fullAIResponse = "";
             chatHistory.push({ role: "user", content: content });
 

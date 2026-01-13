@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>数学核心素养AI - 完美行列式版</title>
+    <title>数学核心素养AI - 完美绘图版</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -114,8 +114,6 @@
         .history-list { max-height: 200px; overflow-y: auto; }
         .history-item { background: rgba(255, 255, 255, 0.1); padding: 8px 12px; margin-bottom: 8px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: background 0.2s; display: flex; justify-content: space-between; align-items: center; }
         .history-item:hover { background: rgba(255, 255, 255, 0.2); }
-        .history-item-delete { color: rgba(255, 100, 100, 0.8); cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: all 0.2s; }
-        .history-item-delete:hover { background: rgba(255, 100, 100, 0.3); color: white; }
     </style>
 </head>
 <body>
@@ -124,54 +122,34 @@
             <h1 style="font-size: 20px; margin-bottom: 8px;">数学核心素养AI</h1>
             <p style="font-size: 12px; opacity: 0.8;">龚凤乾教授设计</p>
             <hr style="margin: 15px 0; opacity: 0.2;">
-            
             <div style="font-size: 13px; line-height: 1.6;">
                 <p style="font-weight: bold; margin-bottom: 12px;"><i class="fas fa-info-circle"></i> 使用说明:</p>
                 <ul style="padding-left: 18px; opacity: 0.9;">
-                    <li style="margin-bottom: 12px;"><strong>智能问答:</strong>在下方输入框描述数学问题,支持代数、几何及线代。</li>
-                    <li style="margin-bottom: 12px;"><strong>完美公式:</strong>深度优化渲染,精准展示克莱姆法则等复杂行列式。</li>
-                    <li style="margin-bottom: 12px;"><strong>动态绘图:</strong>AI自动识别函数并调用Desmos可视化。</li>
-                    <li style="margin-bottom: 12px;"><strong>历史记录:</strong>查看和管理聊天历史,支持删除功能。</li>
+                    <li style="margin-bottom: 12px;"><strong>智能问答:</strong>代数、几何及线代专家。</li>
+                    <li style="margin-bottom: 12px;"><strong>动态绘图:</strong>自动识别并缩放函数图像。</li>
                 </ul>
-                <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; font-size: 11px;">
-                    <strong>⚠️ 使用提示:</strong><br>
-                    如出现"Failed to fetch"错误,请:<br>
-                    1. 检查API密钥是否有效<br>
-                    2. 确认网络连接正常<br>
-                    3. 查看浏览器控制台详细信息
-                </div>
             </div>
-
             <div class="history-section">
-                <div class="history-title">
-                    <span><i class="fas fa-history"></i> 聊天历史</span>
-                    <span style="font-size: 11px; cursor: pointer; opacity: 0.7;" id="clearAllHistory" title="清空所有历史">
-                        <i class="fas fa-trash"></i>
-                    </span>
-                </div>
+                <div class="history-title"><span><i class="fas fa-history"></i> 聊天历史</span></div>
                 <div class="history-list" id="historyList"></div>
-            </div>
-            
-            <div style="margin-top: auto;">
-                <hr style="margin: 15px 0; opacity: 0.2;">
-                <p style="font-size: 12px; opacity: 0.7;">提示:若遇到显示异常,请刷新页面或检查网络连接。</p>
             </div>
         </div>
 
         <div class="right-panel">
             <div class="chat-container" id="chatContainer">
-                <div class="message ai-message">您好!我是数学助学AI。我已经更新了左侧布局并优化了响应逻辑。请问有什么数学问题我可以帮您?</div>
+                <div class="message ai-message">您好! 绘图功能已增强，支持自动缩放，请问需要绘制什么函数？</div>
             </div>
 
             <div id="desmos-container"></div>
+            
             <div class="tool-bar">
-                <button class="tool-btn" id="toggleDesmos"><i class="fas fa-chart-line"></i> 开启/关闭 Desmos 图形</button>
-                <button class="tool-btn danger" id="clearChat"><i class="fas fa-trash-alt"></i> 清空当前对话</button>
+                <button class="tool-btn" id="toggleDesmos"><i class="fas fa-chart-line"></i> 开启/关闭 图形面板</button>
+                <button class="tool-btn danger" id="clearChat"><i class="fas fa-trash-alt"></i> 清空对话</button>
             </div>
             
             <div class="input-area">
                 <div class="input-container">
-                    <textarea class="input-box" id="messageInput" placeholder="请输入数学问题..."></textarea>
+                    <textarea class="input-box" id="messageInput" placeholder="例如：请画出正弦函数和指数函数图像"></textarea>
                     <button class="send-btn" id="sendBtn"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
@@ -180,7 +158,6 @@
 
     <script>
         const API_URL = '/.netlify/functions/chat-stream';
-
         const chatContainer = document.getElementById('chatContainer');
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
@@ -190,193 +167,80 @@
         let calculator = null;
         let chatHistory = [{ 
             role: "system", 
-            content: `你是一个数学教育专家。要求:
-1. 矩阵用 pmatrix,行列式用 vmatrix。
-2. 展示分式嵌套行列式时必须完整。
-3. 变量包裹在 $ 中。
-4. 复杂公式使用 $$。
-5. **重要**：当回答涉及任何函数或公式时，必须在回答末尾添加 [GRAPH: 函数表达式] 标记。
-6. 函数表达式要求：使用标准数学表示，例如：
-   - 线性: [GRAPH: y=2x+1]
-   - 二次: [GRAPH: y=x^2]
-   - 三角: [GRAPH: y=sin(x)]
-   - 多个函数用分号分隔: [GRAPH: y=sin(x); y=cos(x)]
-7. 即使只是询问名称，也要给出完整公式并添加图形标记。` 
+            content: `你是一个数学教育专家。
+            1. 回答数学问题时，请务必在末尾添加 [GRAPH: y=f(x)] 格式。
+            2. 多个函数用分号隔开，如 [GRAPH: y=sin(x); y=cos(x)]。
+            3. 使用标准 LaTeX，例如指数函数写成 y=e^x 或 y=exp(x)。`
         }];
-        let conversations = []; 
-        let messageCounter = 0; 
 
-        function loadHistory() {
-            const saved = localStorage.getItem('chatConversations');
-            if (saved) {
-                conversations = JSON.parse(saved);
-                updateHistoryUI();
-            }
-        }
-
-        function saveHistory() {
-            localStorage.setItem('chatConversations', JSON.stringify(conversations));
-        }
-
-        function updateHistoryUI() {
-            historyList.innerHTML = '';
-            conversations.forEach((conv, index) => {
-                const div = document.createElement('div');
-                div.className = 'history-item';
-                div.innerHTML = `
-                    <span style="flex: 1;" title="${conv.preview}">${conv.title}</span>
-                    <span class="history-item-delete" data-index="${index}">×</span>
-                `;
-                div.querySelector('span:first-child').onclick = () => loadConversation(index);
-                div.querySelector('.history-item-delete').onclick = (e) => {
-                    e.stopPropagation();
-                    deleteConversation(index);
-                };
-                historyList.appendChild(div);
-            });
-        }
-
-        function saveCurrentConversation(userMsg, aiMsg) {
-            const conv = {
-                title: userMsg.substring(0, 20) + (userMsg.length > 20 ? '...' : ''),
-                preview: userMsg,
-                timestamp: Date.now(),
-                messages: [...chatHistory]
-            };
-            conversations.unshift(conv);
-            if (conversations.length > 20) conversations.pop();
-            saveHistory();
-            updateHistoryUI();
-        }
-
-        function loadConversation(index) {
-            if (confirm('加载此对话将清空当前内容,是否继续?')) {
-                const conv = conversations[index];
-                chatHistory = [...conv.messages];
-                chatContainer.innerHTML = '';
-                chatHistory.forEach((msg) => {
-                    if (msg.role === 'user') addMessageToUI('user', msg.content, false);
-                    else if (msg.role === 'assistant') addMessageToUI('ai', msg.content, false);
+        // 初始化 Desmos
+        function initDesmos() {
+            if (!calculator) {
+                desmosEl.style.display = 'block';
+                calculator = Desmos.GraphingCalculator(desmosEl, { 
+                    expressions: true, 
+                    settingsMenu: false,
+                    autosize: true
                 });
             }
         }
 
-        function deleteConversation(index) {
-            if (confirm('确定要删除这条历史记录吗?')) {
-                conversations.splice(index, 1);
-                saveHistory();
-                updateHistoryUI();
-            }
-        }
-
-        document.getElementById('clearAllHistory').onclick = () => {
-            if (confirm('确定要清空所有历史记录吗?')) {
-                conversations = [];
-                saveHistory();
-                updateHistoryUI();
-            }
-        };
-
-        document.getElementById('clearChat').onclick = () => {
-            if (confirm('确定要清空当前对话吗?')) {
-                chatHistory = [chatHistory[0]];
-                chatContainer.innerHTML = '<div class="message ai-message">对话已清空。请问有什么数学问题我可以帮您?</div>';
-            }
-        };
-
-        document.getElementById('toggleDesmos').onclick = () => {
-            const show = desmosEl.style.display === 'none' || desmosEl.style.display === '';
-            desmosEl.style.display = show ? 'block' : 'none';
-            if (show && !calculator) {
-                calculator = Desmos.GraphingCalculator(desmosEl, { expressions: true, settingsMenu: false });
-            }
-        };
-
-        // 核心功能：自动绘图与坐标轴缩放
+        // 核心改进：自动检测、绘图及自动缩放
         function autoDrawFunction(text) {
-            const graphMatch = text.match(/\[GRAPH:\s*([\s\S]+?)\]/);
-            if (graphMatch) {
-                const exprs = graphMatch[1].trim();
-                desmosEl.style.display = 'block';
+            // 使用更强大的正则，兼容流式输出中可能存在的换行或空格
+            const graphRegex = /\[GRAPH:\s*([\s\S]+?)\]/i;
+            const match = text.match(graphRegex);
+            
+            if (match) {
+                initDesmos();
+                const exprString = match[1].trim();
+                const expressions = exprString.split(';').map(e => e.trim());
                 
-                if (!calculator) {
-                    calculator = Desmos.GraphingCalculator(desmosEl, { 
-                        expressions: true, 
-                        settingsMenu: false,
-                        autosize: true
-                    });
-                }
-                
-                try {
-                    const expressionList = exprs.split(';').map(e => e.trim());
+                // 清空旧轨迹
+                const oldExprs = calculator.getExpressions();
+                oldExprs.forEach(ex => calculator.removeExpression({id: ex.id}));
+
+                expressions.forEach((expr, index) => {
+                    // 转换常见简写为 Desmos LaTeX
+                    let latexExpr = expr.replace(/exp\((.*?)\)/g, 'e^{$1}')
+                                       .replace(/sqrt\((.*?)\)/g, '\\sqrt{$1}');
                     
-                    // 清除旧表达式，但不触发重绘闪烁
-                    const currentExprs = calculator.getExpressions();
-                    currentExprs.forEach(e => calculator.removeExpression({id: e.id}));
-
-                    let bounds = { left: -10, right: 10, bottom: -10, top: 10 };
-                    let hasSpecificBounds = false;
-
-                    expressionList.forEach((expr, index) => {
-                        const id = `graph_${index}`;
-                        calculator.setExpression({ 
-                            id: id,
-                            latex: expr,
-                            color: ['#1a2980', '#e91e63', '#26d0ce', '#4caf50'][index % 4]
-                        });
-
-                        // 智能判断坐标轴范围
-                        if (expr.includes('sin') || expr.includes('cos')) {
-                            bounds = { left: -7, right: 7, bottom: -2, top: 2 };
-                            hasSpecificBounds = true;
-                        } else if (expr.includes('exp') || expr.includes('^x')) {
-                            bounds = { left: -2, right: 5, bottom: -1, top: 10 };
-                            hasSpecificBounds = true;
-                        }
+                    calculator.setExpression({
+                        id: 'obj_' + index,
+                        latex: latexExpr,
+                        color: Desmos.Colors.BLUE
                     });
+                });
 
-                    // 应用缩放
-                    if (hasSpecificBounds) {
-                        calculator.setMathBounds(bounds);
+                // 自动缩放逻辑：延迟执行确保表达式已解析
+                setTimeout(() => {
+                    // 针对不同类型的函数设置最优视角
+                    if (exprString.includes('sin') || exprString.includes('cos')) {
+                        calculator.setMathBounds({ left: -10, right: 10, bottom: -2, top: 2 });
+                    } else if (exprString.includes('e^') || exprString.includes('exp')) {
+                        calculator.setMathBounds({ left: -2, right: 4, bottom: -1, top: 10 });
                     } else {
-                        // 默认自动缩放逻辑：稍等片刻待表达式解析后执行
-                        setTimeout(() => {
-                            if(calculator) {
-                                const helper = calculator.Helper();
-                                // 如果没有预设范围，尝试回到原点中心
-                                // Desmos API 本身没有直接的 "zoom to fit all" 简单指令，
-                                // 这里通过设置标准范围确保图像不跑偏
-                            }
-                        }, 100);
+                        // 通用自动缩放：Desmos 默认 10x10，如果图像太小则不调整
+                        // 这里我们强制设置一个合理的初始观察窗口
+                        calculator.setMathBounds({ left: -10, right: 10, bottom: -10, top: 10 });
                     }
-                } catch (e) { console.warn('Desmos绘图更新中...', e); }
+                }, 200);
             }
         }
 
         function formatMathText(text) {
             let formatted = text.replace(/\\\\/g, '\\\\\\\\');
-            formatted = formatted.replace(/\[GRAPH:\s*(.+?)\]/g, '');
+            // 隐藏标记，不让用户看到 [GRAPH: ...]
+            formatted = formatted.replace(/\[GRAPH:[\s\S]+?\]/gi, '');
             return marked.parse(formatted);
         }
 
-        function addMessageToUI(role, text, enableDelete = true) {
+        function addMessageToUI(role, text) {
             const div = document.createElement('div');
             div.className = `message ${role}-message`;
-            div.setAttribute('data-id', messageCounter++);
-            
-            if (enableDelete) {
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
-                deleteBtn.onclick = () => div.remove();
-                div.appendChild(deleteBtn);
-            }
-            
             const contentDiv = document.createElement('div');
-            if (role === 'ai') autoDrawFunction(text); 
             contentDiv.innerHTML = role === 'ai' ? formatMathText(text) : text;
             div.appendChild(contentDiv);
-            
             chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
             
@@ -396,7 +260,7 @@
             messageInput.value = '';
             sendBtn.disabled = true;
 
-            const aiDiv = addMessageToUI('ai', '<span class="thinking">思考中<span class="thinking-dot"></span><span class="thinking-dot"></span><span class="thinking-dot"></span></span>');
+            const aiDiv = addMessageToUI('ai', '<span class="thinking">思考中...<span class="thinking-dot"></span></span>');
             let fullAIResponse = "";
             chatHistory.push({ role: "user", content: content });
 
@@ -406,8 +270,6 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ model: "deepseek-chat", messages: chatHistory, stream: true })
                 });
-
-                if (!response.ok) throw new Error(`API请求失败: ${response.status}`);
 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
@@ -429,40 +291,35 @@
                                 const delta = data.choices[0].delta.content || "";
                                 fullAIResponse += delta;
                                 aiDiv.querySelector('div').innerHTML = formatMathText(fullAIResponse);
-                                // 在流式输出过程中实时尝试识别图形标记
-                                if(fullAIResponse.includes('[GRAPH:')) autoDrawFunction(fullAIResponse);
+                                
+                                // 实时绘图：如果检测到标记结束括号，立即触发
+                                if (fullAIResponse.includes(']')) {
+                                    autoDrawFunction(fullAIResponse);
+                                }
                                 chatContainer.scrollTop = chatContainer.scrollHeight;
                             } catch (e) {}
                         }
                     }
                 }
-                
-                if (window.MathJax) {
-                    MathJax.typesetPromise([aiDiv.querySelector('div')]).then(() => {
-                        autoDrawFunction(fullAIResponse);
-                    });
-                }
                 chatHistory.push({ role: "assistant", content: fullAIResponse });
-                saveCurrentConversation(content, fullAIResponse);
-
             } catch (error) {
-                console.error('请求错误:', error);
-                chatHistory.pop();
-                aiDiv.querySelector('div').innerHTML = "抱歉,连接出现问题。请检查API密钥或网络连接。";
+                aiDiv.querySelector('div').innerHTML = "网络错误，请检查连接。";
             } finally {
                 sendBtn.disabled = false;
             }
         }
 
+        // 按钮监听
         sendBtn.onclick = handleSend;
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-            }
-        });
-
-        loadHistory();
+        document.getElementById('toggleDesmos').onclick = () => {
+            desmosEl.style.display = desmosEl.style.display === 'none' ? 'block' : 'none';
+            if (desmosEl.style.display === 'block') initDesmos();
+        };
+        document.getElementById('clearChat').onclick = () => {
+            chatContainer.innerHTML = '';
+            chatHistory = [chatHistory[0]];
+        };
+        messageInput.onkeydown = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } };
     </script>
 </body>
 </html>

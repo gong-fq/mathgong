@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>数学核心素养AI - 完美行列式版</title>
+    <title>数学核心素养AI</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
         window.MathJax = {
@@ -17,108 +16,31 @@
                     ddet: ["\\begin{vmatrix} #1 \\end{vmatrix}", 1],
                     ppmat: ["\\begin{pmatrix} #1 \\end{pmatrix}", 1]
                 }
-            },
-            options: {
-                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
             }
         };
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="https://www.desmos.com/api/v1.9/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
-
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background-color: #f5f7fa; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        
-        .container { 
-            display: flex; 
-            flex-direction: row; 
-            flex: 1; 
-            width: 100%;
-            height: 100vh;
-            padding: 15px; 
-            gap: 20px; 
-            overflow: hidden; 
-        }
-
-        .left-panel { 
-            flex: 0 0 280px; 
-            background: linear-gradient(135deg, #1a2980, #26d0ce); 
-            border-radius: 20px; 
-            padding: 25px; 
-            color: white; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-        }
-
-        .right-panel { 
-            flex: 1; 
-            display: flex; 
-            flex-direction: column; 
-            background: white; 
-            border-radius: 20px; 
-            overflow: hidden; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
-        }
-
+        .container { display: flex; flex: 1; width: 100%; padding: 15px; gap: 20px; overflow: hidden; }
+        .left-panel { flex: 0 0 280px; background: linear-gradient(135deg, #1a2980, #26d0ce); border-radius: 20px; padding: 25px; color: white; box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow-y: auto; }
+        .right-panel { flex: 1; display: flex; flex-direction: column; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
         .chat-container { flex: 1; padding: 25px; overflow-y: auto; background-color: #fafbfd; display: flex; flex-direction: column; gap: 20px; }
         .message { max-width: 85%; padding: 15px 20px; border-radius: 18px; line-height: 1.7; word-wrap: break-word; position: relative; }
         .ai-message { align-self: flex-start; background: white; border: 1px solid #e1f0ff; }
         .user-message { align-self: flex-end; background: linear-gradient(135deg, #1a2980, #26d0ce); color: white; }
-
-        .delete-btn {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: rgba(255, 0, 0, 0.7);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            cursor: pointer;
-            font-size: 12px;
-            display: none;
-            transition: background 0.2s;
-        }
+        .delete-btn { position: absolute; top: 8px; right: 8px; background: rgba(255, 0, 0, 0.7); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 12px; display: none; transition: background 0.2s; }
         .message:hover .delete-btn { display: block; }
         .delete-btn:hover { background: rgba(255, 0, 0, 0.9); }
-
         .mjx-container { margin: 1.2em 0 !important; font-size: 1.1em !important; display: block !important; text-align: center; max-width: 100%; overflow-x: auto; }
-
-        .thinking {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 16px;
-            color: #1a2980;
-        }
-        
-        .thinking-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #1a2980, #26d0ce);
-            animation: thinking-bounce 1.4s infinite ease-in-out;
-        }
-        
+        .thinking { display: inline-flex; align-items: center; gap: 4px; font-size: 16px; color: #1a2980; }
+        .thinking-dot { width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(135deg, #1a2980, #26d0ce); animation: thinking-bounce 1.4s infinite ease-in-out; }
         .thinking-dot:nth-child(1) { animation-delay: 0s; }
         .thinking-dot:nth-child(2) { animation-delay: 0.2s; }
         .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
-        
-        @keyframes thinking-bounce {
-            0%, 60%, 100% {
-                transform: translateY(0);
-                opacity: 0.7;
-            }
-            30% {
-                transform: translateY(-10px);
-                opacity: 1;
-            }
-        }
-
+        @keyframes thinking-bounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.7; } 30% { transform: translateY(-10px); opacity: 1; } }
         #desmos-container { height: 320px; border-top: 1px solid #eee; display: none; }
         .tool-bar { padding: 10px 20px; background: #f8f9fa; border-top: 1px solid #eee; display: flex; gap: 10px; flex-wrap: wrap; }
         .tool-btn { font-size: 12px; padding: 6px 15px; border-radius: 20px; border: 1px solid #1a2980; color: #1a2980; cursor: pointer; background: white; transition: all 0.2s; }
@@ -127,153 +49,42 @@
         .tool-btn.danger:hover { background: #dc3545; color: white; }
         .tool-btn.success { border-color: #28a745; color: #28a745; }
         .tool-btn.success:hover { background: #28a745; color: white; }
-
         .input-area { padding: 20px; border-top: 1px solid #eee; }
         .input-container { display: flex; gap: 12px; align-items: flex-end; }
         .input-box { flex: 1; border: 1px solid #ddd; border-radius: 12px; padding: 12px; font-size: 15px; resize: none; min-height: 50px; max-height: 150px; }
         .send-btn { background: #1a2980; color: white; border: none; border-radius: 50%; width: 50px; height: 50px; cursor: pointer; flex-shrink: 0; transition: opacity 0.2s; }
         .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .history-section {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        .history-title {
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .history-list {
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        .history-item {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 8px 12px;
-            margin-bottom: 8px;
-            border-radius: 8px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: background 0.2s;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        .history-section { margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.2); }
+        .history-title { font-size: 14px; font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .history-list { max-height: 200px; overflow-y: auto; }
+        .history-item { background: rgba(255, 255, 255, 0.1); padding: 8px 12px; margin-bottom: 8px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: background 0.2s; display: flex; justify-content: space-between; align-items: center; }
         .history-item:hover { background: rgba(255, 255, 255, 0.2); }
-        .history-item-delete {
-            color: rgba(255, 100, 100, 0.8);
-            cursor: pointer;
-            padding: 2px 6px;
-            border-radius: 4px;
-            transition: all 0.2s;
-        }
-        .history-item-delete:hover {
-            background: rgba(255, 100, 100, 0.3);
-            color: white;
-        }
-
-        /* 配置弹窗样式 */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-content {
-            background-color: white;
-            padding: 30px;
-            border-radius: 15px;
-            width: 500px;
-            max-width: 90%;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        }
-        .modal-header {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 20px;
-            color: #1a2980;
-        }
-        .modal-body input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
-            margin-bottom: 15px;
-        }
-        .modal-footer {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
-        .modal-btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-        .modal-btn.primary {
-            background: #1a2980;
-            color: white;
-        }
-        .modal-btn.primary:hover {
-            background: #26d0ce;
-        }
-        .modal-btn.secondary {
-            background: #f0f0f0;
-            color: #333;
-        }
-        .modal-btn.secondary:hover {
-            background: #e0e0e0;
-        }
-        .config-status {
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            font-size: 13px;
-        }
-        .config-status.warning {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-        .config-status.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
+        .history-item-delete { color: rgba(255, 100, 100, 0.8); cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: all 0.2s; }
+        .history-item-delete:hover { background: rgba(255, 100, 100, 0.3); color: white; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background-color: white; padding: 30px; border-radius: 15px; width: 500px; max-width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        .modal-header { font-size: 20px; font-weight: bold; margin-bottom: 20px; color: #1a2980; }
+        .modal-body input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 15px; }
+        .modal-footer { display: flex; gap: 10px; justify-content: flex-end; }
+        .modal-btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+        .modal-btn.primary { background: #1a2980; color: white; }
+        .modal-btn.primary:hover { background: #26d0ce; }
+        .modal-btn.secondary { background: #f0f0f0; color: #333; }
+        .modal-btn.secondary:hover { background: #e0e0e0; }
+        .config-status { padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; }
+        .config-status.warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .config-status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
     </style>
 </head>
 <body>
-    <!-- 配置弹窗 -->
     <div id="config-modal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <i class="fas fa-cog"></i> API配置
-            </div>
+            <div class="modal-header"><i class="fas fa-cog"></i> API配置</div>
             <div class="modal-body">
-                <div id="config-status" class="config-status warning">
-                    ⚠️ 请配置您的DeepSeek API密钥才能使用AI功能
-                </div>
-                <label style="font-size: 13px; color: #666; margin-bottom: 5px; display: block;">
-                    API Key (在 <a href="https://platform.deepseek.com/" target="_blank" style="color: #1a2980;">platform.deepseek.com</a> 获取)
-                </label>
+                <div id="config-status" class="config-status warning">⚠️ 请配置DeepSeek API密钥</div>
+                <label style="font-size: 13px; color: #666; margin-bottom: 5px; display: block;">API Key (在 <a href="https://platform.deepseek.com/" target="_blank" style="color: #1a2980;">platform.deepseek.com</a> 获取)</label>
                 <input type="password" id="api-key-input" placeholder="sk-xxxxxxxxxxxxxxxx">
-                <label style="font-size: 13px; color: #666; margin-bottom: 5px; display: block;">
-                    API URL (默认即可)
-                </label>
+                <label style="font-size: 13px; color: #666; margin-bottom: 5px; display: block;">API URL</label>
                 <input type="text" id="api-url-input" value="https://api.deepseek.com/chat/completions">
             </div>
             <div class="modal-footer">
@@ -288,23 +99,21 @@
             <h1 style="font-size: 20px; margin-bottom: 8px;">数学核心素养AI</h1>
             <p style="font-size: 12px; opacity: 0.8;">龚凤乾教授设计</p>
             <hr style="margin: 15px 0; opacity: 0.2;">
-            
             <div style="font-size: 13px; line-height: 1.6;">
                 <p style="font-weight: bold; margin-bottom: 12px;"><i class="fas fa-info-circle"></i> 使用说明:</p>
                 <ul style="padding-left: 18px; opacity: 0.9;">
-                    <li style="margin-bottom: 12px;"><strong>智能问答:</strong>在下方输入框描述数学问题,支持代数、几何及线代。</li>
-                    <li style="margin-bottom: 12px;"><strong>完美公式:</strong>深度优化渲染,精准展示克莱姆法则等复杂行列式。</li>
-                    <li style="margin-bottom: 12px;"><strong>动态绘图:</strong>AI自动识别函数并调用Desmos可视化。</li>
-                    <li style="margin-bottom: 12px;"><strong>历史记录:</strong>查看和管理聊天历史,支持删除功能。</li>
+                    <li style="margin-bottom: 12px;"><strong>智能问答:</strong>描述数学问题,支持代数、几何、线代</li>
+                    <li style="margin-bottom: 12px;"><strong>完美公式:</strong>精准展示复杂行列式和矩阵</li>
+                    <li style="margin-bottom: 12px;"><strong>动态绘图:</strong>AI自动识别函数并可视化</li>
+                    <li style="margin-bottom: 12px;"><strong>历史记录:</strong>查看和管理聊天历史</li>
                 </ul>
                 <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; font-size: 11px;">
                     <strong>⚠️ 使用提示:</strong><br>
-                    1. 首次使用需配置DeepSeek API密钥<br>
-                    2. 在 platform.deepseek.com 注册获取免费额度<br>
-                    3. 点击下方"配置API"按钮设置密钥
+                    1. 首次使用需配置API密钥<br>
+                    2. 在platform.deepseek.com获取<br>
+                    3. 点击"配置API"按钮设置
                 </div>
             </div>
-
             <div class="history-section">
                 <div class="history-title">
                     <span><i class="fas fa-history"></i> 聊天历史</span>
@@ -312,73 +121,52 @@
                 </div>
                 <div id="history-list" class="history-list"></div>
             </div>
-
             <p style="margin-top: auto; padding-top: 20px; font-size: 11px; opacity: 0.7; text-align: center;">微分</p>
         </div>
 
         <div class="right-panel">
             <div id="chat-container" class="chat-container"></div>
-            
             <div id="desmos-container"></div>
-            
             <div class="tool-bar">
-                <button class="tool-btn success" onclick="openConfigModal()">
-                    <i class="fas fa-cog"></i> 配置API
-                </button>
-                <button class="tool-btn" onclick="toggleDesmos()">
-                    <i class="fas fa-chart-line"></i> 切换图形
-                </button>
-                <button class="tool-btn danger" onclick="clearDesmos()">
-                    <i class="fas fa-eraser"></i> 清空图形
-                </button>
-                <button class="tool-btn danger" onclick="clearChat()">
-                    <i class="fas fa-trash"></i> 清空对话
-                </button>
+                <button class="tool-btn success" onclick="openConfigModal()"><i class="fas fa-cog"></i> 配置API</button>
+                <button class="tool-btn" onclick="toggleDesmos()"><i class="fas fa-chart-line"></i> 切换图形</button>
+                <button class="tool-btn danger" onclick="clearDesmos()"><i class="fas fa-eraser"></i> 清空图形</button>
+                <button class="tool-btn danger" onclick="clearChat()"><i class="fas fa-trash"></i> 清空对话</button>
             </div>
-
             <div class="input-area">
                 <div class="input-container">
-                    <textarea id="message-input" class="input-box" placeholder="输入您的数学问题...例如：画出 y=sin(x) 的图像"></textarea>
-                    <button id="send-btn" class="send-btn">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
+                    <textarea id="message-input" class="input-box" placeholder="输入数学问题...例如: 画出 y=sin(x) 的图像"></textarea>
+                    <button id="send-btn" class="send-btn"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // 配置管理
         let API_KEY = localStorage.getItem('deepseek_api_key') || '';
         let API_URL = localStorage.getItem('deepseek_api_url') || 'https://api.deepseek.com/chat/completions';
-
         const chatContainer = document.getElementById('chat-container');
         const messageInput = document.getElementById('message-input');
         const sendBtn = document.getElementById('send-btn');
         const desmosEl = document.getElementById('desmos-container');
-        
         let calculator = null;
         let chatHistory = [];
         let messageCounter = 0;
 
-        // 配置弹窗管理
         function openConfigModal() {
             const modal = document.getElementById('config-modal');
             const keyInput = document.getElementById('api-key-input');
             const urlInput = document.getElementById('api-url-input');
             const statusDiv = document.getElementById('config-status');
-            
             keyInput.value = API_KEY;
             urlInput.value = API_URL;
-            
             if (API_KEY) {
                 statusDiv.className = 'config-status success';
-                statusDiv.innerHTML = '✅ API已配置，可以开始使用';
+                statusDiv.innerHTML = '✅ API已配置';
             } else {
                 statusDiv.className = 'config-status warning';
-                statusDiv.innerHTML = '⚠️ 请配置您的DeepSeek API密钥才能使用AI功能';
+                statusDiv.innerHTML = '⚠️ 请配置DeepSeek API密钥';
             }
-            
             modal.style.display = 'flex';
         }
 
@@ -389,37 +177,27 @@
         function saveConfig() {
             const keyInput = document.getElementById('api-key-input');
             const urlInput = document.getElementById('api-url-input');
-            
             API_KEY = keyInput.value.trim();
             API_URL = urlInput.value.trim();
-            
             if (!API_KEY) {
-                alert('请输入API密钥！');
+                alert('请输入API密钥');
                 return;
             }
-            
             localStorage.setItem('deepseek_api_key', API_KEY);
             localStorage.setItem('deepseek_api_url', API_URL);
-            
             closeConfigModal();
-            
-            // 显示成功消息
             const successDiv = document.createElement('div');
             successDiv.className = 'message ai-message';
-            successDiv.innerHTML = '<div>✅ API配置成功！现在可以开始使用AI功能了。</div>';
+            successDiv.innerHTML = '<div>✅ API配置成功!</div>';
             chatContainer.appendChild(successDiv);
         }
 
-        // 页面加载时检查配置
         window.addEventListener('load', () => {
             if (!API_KEY) {
-                setTimeout(() => {
-                    openConfigModal();
-                }, 1000);
+                setTimeout(() => openConfigModal(), 1000);
             }
         });
 
-        // 历史记录管理
         function saveCurrentConversation(userMsg, aiMsg) {
             let history = JSON.parse(localStorage.getItem('chatHistory') || '[]');
             const preview = userMsg.substring(0, 30) + (userMsg.length > 30 ? '...' : '');
@@ -441,10 +219,7 @@
             history.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'history-item';
-                div.innerHTML = `
-                    <span onclick="loadConversation(${item.id})">${item.preview}</span>
-                    <span class="history-item-delete" onclick="deleteHistoryItem(event, ${item.id})">×</span>
-                `;
+                div.innerHTML = `<span onclick="loadConversation(${item.id})">${item.preview}</span><span class="history-item-delete" onclick="deleteHistoryItem(event, ${item.id})">×</span>`;
                 historyList.appendChild(div);
             });
         }
@@ -453,10 +228,8 @@
             const history = JSON.parse(localStorage.getItem('chatHistory') || '[]');
             const conv = history.find(item => item.id === id);
             if (!conv) return;
-            
             clearChat();
             chatHistory = conv.messages;
-            
             chatHistory.forEach(msg => {
                 if (msg.role !== 'system') {
                     addMessageToUI(msg.role === 'user' ? 'user' : 'ai', msg.content, false);
@@ -466,7 +239,7 @@
 
         function deleteHistoryItem(event, id) {
             event.stopPropagation();
-            if (confirm('确定要删除这条历史记录吗?')) {
+            if (confirm('确定删除?')) {
                 let history = JSON.parse(localStorage.getItem('chatHistory') || '[]');
                 history = history.filter(item => item.id !== id);
                 localStorage.setItem('chatHistory', JSON.stringify(history));
@@ -475,137 +248,93 @@
         }
 
         function clearHistory() {
-            if (confirm('确定要清空所有历史记录吗?')) {
+            if (confirm('确定清空历史?')) {
                 localStorage.removeItem('chatHistory');
                 loadHistory();
             }
         }
 
-        // Desmos工具函数
         function toggleDesmos() {
             desmosEl.style.display = desmosEl.style.display === 'none' ? 'block' : 'none';
         }
 
         function clearDesmos() {
-            if (calculator) {
-                calculator.setBlank();
-            }
+            if (calculator) calculator.setBlank();
         }
 
         function clearChat() {
-            if (confirm('确定要清空当前对话吗?')) {
+            if (confirm('确定清空对话?')) {
                 chatContainer.innerHTML = '';
                 chatHistory = [];
                 messageCounter = 0;
             }
         }
 
-        // 增强的函数识别和绘图功能
         function autoDrawFunction(text) {
-            console.log('🔍 开始识别函数...');
-            
-            // 方法1: 识别标准的[GRAPH:]标记
+            console.log('🔍 识别函数...');
             const graphMatch = text.match(/\[GRAPH:\s*(.+?)\]/);
             if (graphMatch) {
-                console.log('✅ 找到GRAPH标记:', graphMatch[0]);
-                const exprs = graphMatch[1].trim();
-                drawFunctions(exprs.split(';').map(e => e.trim()));
+                console.log('✅ GRAPH标记:', graphMatch[0]);
+                drawFunctions(graphMatch[1].trim().split(';').map(e => e.trim()));
                 return;
             }
-            
-            // 方法2: 智能识别常见函数模式
-            const functionPatterns = [
-                /y\s*=\s*([^,\n\r]+)/gi,
-                /f\s*\(\s*x\s*\)\s*=\s*([^,\n\r]+)/gi,
-            ];
-            
+            const functionPatterns = [/y\s*=\s*([^,\n\r]+)/gi, /f\s*\(\s*x\s*\)\s*=\s*([^,\n\r]+)/gi];
             let detectedFunctions = [];
-            
             for (const pattern of functionPatterns) {
                 let match;
                 while ((match = pattern.exec(text)) !== null) {
                     let expr = match[1] ? match[1].trim() : match[0].trim();
-                    
-                    expr = expr
-                        .replace(/[，。！？]/g, '')
-                        .replace(/\s+/g, '')
-                        .replace(/\$+/g, '');
-                    
+                    expr = expr.replace(/[，。！？]/g, '').replace(/\s+/g, '').replace(/\$+/g, '');
                     if (expr.includes('x') && expr.length > 2 && expr.length < 100) {
-                        expr = expr
-                            .replace(/\\sin/g, 'sin')
-                            .replace(/\\cos/g, 'cos')
-                            .replace(/\\tan/g, 'tan')
-                            .replace(/\\frac{(.+?)}{(.+?)}/g, '($1)/($2)')
-                            .replace(/\^/g, '^')
-                            .replace(/\*/g, '*');
-                        
+                        expr = expr.replace(/\\sin/g, 'sin').replace(/\\cos/g, 'cos').replace(/\\tan/g, 'tan').replace(/\\frac\{(.+?)\}\{(.+?)\}/g, '($1)/($2)');
                         if (!detectedFunctions.includes(expr)) {
                             detectedFunctions.push(expr);
-                            console.log('📊 检测到函数:', expr);
+                            console.log('📊 检测到:', expr);
                         }
                     }
                 }
             }
-            
             if (detectedFunctions.length > 0) {
-                console.log(`✅ 共检测到 ${detectedFunctions.length} 个函数`);
+                console.log(`✅ 共${detectedFunctions.length}个函数`);
                 drawFunctions(detectedFunctions);
             } else {
-                console.log('⚠️ 未检测到可绘制的函数');
+                console.log('⚠️ 未检测到函数');
             }
         }
 
-        // 统一的绘图函数
         function drawFunctions(expressions) {
             if (expressions.length === 0) return;
-            
             desmosEl.style.display = 'block';
-            
             if (!calculator) {
-                calculator = Desmos.GraphingCalculator(desmosEl, { 
-                    expressions: true, 
-                    settingsMenu: false 
-                });
+                calculator = Desmos.GraphingCalculator(desmosEl, { expressions: true, settingsMenu: false });
             }
-            
             try {
                 calculator.setBlank();
-                
                 const colors = ['#2d70b3', '#388c46', '#6042a6', '#c74440', '#fa7e19', '#000000'];
-                
                 expressions.forEach((expr, index) => {
                     try {
-                        calculator.setExpression({ 
-                            id: `graph_${index}`,
-                            latex: expr,
-                            color: colors[index % colors.length]
-                        });
-                        console.log(`📈 已绘制函数 ${index + 1}: ${expr}`);
+                        calculator.setExpression({ id: `graph_${index}`, latex: expr, color: colors[index % colors.length] });
+                        console.log(`📈 绘制 ${index + 1}: ${expr}`);
                     } catch (e) {
-                        console.error(`❌ 绘制函数失败: ${expr}`, e);
+                        console.error(`❌ 失败: ${expr}`, e);
                     }
                 });
-                
                 console.log(`✅ 成功绘制 ${expressions.length} 个函数`);
             } catch (e) {
-                console.error('❌ Desmos绘图错误:', e);
+                console.error('❌ Desmos错误:', e);
             }
         }
 
-        // 格式化输出
         function formatMathText(text) {
             let formatted = text.replace(/\\\\/g, '\\\\\\\\');
             formatted = formatted.replace(/\[GRAPH:\s*(.+?)\]/g, '');
             return marked.parse(formatted);
         }
 
-        // 添加消息到UI
         function addMessageToUI(role, text, enableDelete = true) {
             const div = document.createElement('div');
             div.className = `message ${role}-message`;
             div.setAttribute('data-id', messageCounter++);
-            
             if (enableDelete) {
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'delete-btn';
@@ -613,112 +342,74 @@
                 deleteBtn.onclick = () => deleteMessage(div);
                 div.appendChild(deleteBtn);
             }
-            
             const contentDiv = document.createElement('div');
             contentDiv.innerHTML = role === 'ai' ? formatMathText(text) : text;
             div.appendChild(contentDiv);
-            
             chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
-            
             if (window.MathJax && role === 'ai') {
-                MathJax.typesetPromise([contentDiv]).then(() => {
-                    autoDrawFunction(text);
-                });
+                MathJax.typesetPromise([contentDiv]).then(() => autoDrawFunction(text));
             }
-            
             return div;
         }
 
         function deleteMessage(msgElement) {
-            if (confirm('确定要删除这条消息吗?')) {
-                msgElement.remove();
-            }
+            if (confirm('确定删除?')) msgElement.remove();
         }
 
-        // System Prompt
-        const SYSTEM_PROMPT = `你是一个专业的数学教学AI助手，专门帮助学生理解和解决数学问题。
+        const SYSTEM_PROMPT = `你是数学教学AI助手。
 
-核心能力：
-1. 解答代数、几何、微积分等各类数学问题
-2. 使用LaTeX格式展示数学公式（使用 $ 包裹行内公式，$$ 包裹独立公式）
-3. **自动识别并绘制函数图像**
+能力:
+1. 解答代数、几何、微积分问题
+2. 使用LaTeX格式($包裹行内,$$包裹独立)
+3. 自动绘制函数图像
 
-重要规则：
-- 当回答涉及函数时（如 y=sin(x), f(x)=x^2 等），**必须**在回答末尾添加：[GRAPH: 函数表达式]
-- 多个函数用分号分隔，例如：[GRAPH: y=\\sin(x); y=\\cos(x)]
-- 函数表达式使用LaTeX格式，如：y=x^2, y=\\sin(x), y=\\frac{1}{x}
+规则:
+- 涉及函数时末尾添加: [GRAPH: 表达式]
+- 多函数用分号: [GRAPH: y=\\sin(x); y=\\cos(x)]
+- LaTeX格式: y=x^2, y=\\sin(x), y=\\frac{1}{x}
 
-示例：
-用户："画出 y=sin(x) 的图像"
-你的回答：
-正弦函数 $y=\\sin(x)$ 是一个周期函数，周期为 $2\\pi$。
-[GRAPH: y=\\sin(x)]
+示例:
+用户: "画出 y=sin(x)"
+回答: 正弦函数 $y=\\sin(x)$ 周期为 $2\\pi$。
+[GRAPH: y=\\sin(x)]`;
 
-用户："比较 y=x^2 和 y=2x 的图像"
-你的回答：
-这两个函数的图像特点如下：
-- $y=x^2$ 是抛物线，开口向上
-- $y=2x$ 是直线，斜率为2
-[GRAPH: y=x^2; y=2x]
-
-请始终遵循这些规则。`;
-
-        // 发送逻辑
         async function handleSend() {
             const content = messageInput.value.trim();
             if (!content || sendBtn.disabled) return;
-
             if (!API_KEY) {
-                alert('请先配置API密钥！点击"配置API"按钮进行设置。');
+                alert('请先配置API密钥');
                 openConfigModal();
                 return;
             }
-
             addMessageToUI('user', content);
             messageInput.value = '';
             sendBtn.disabled = true;
-
             const aiDiv = addMessageToUI('ai', '<span class="thinking">思考中<span class="thinking-dot"></span><span class="thinking-dot"></span><span class="thinking-dot"></span></span>');
             let fullAIResponse = "";
-            
             if (chatHistory.length === 0) {
                 chatHistory.push({ role: "system", content: SYSTEM_PROMPT });
             }
-            
             chatHistory.push({ role: "user", content: content });
-
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${API_KEY}`
-                    },
-                    body: JSON.stringify({ 
-                        model: "deepseek-chat", 
-                        messages: chatHistory, 
-                        stream: true 
-                    })
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
+                    body: JSON.stringify({ model: "deepseek-chat", messages: chatHistory, stream: true })
                 });
-
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error('API返回错误:', response.status, errorText);
-                    throw new Error(`API请求失败: ${response.status} - 可能是API密钥无效`);
+                    console.error('API错误:', response.status, errorText);
+                    throw new Error(`API失败: ${response.status}`);
                 }
-
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
-                aiDiv.querySelector('div').innerHTML = ""; 
-
+                aiDiv.querySelector('div').innerHTML = "";
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-                    
                     const chunk = decoder.decode(value);
                     const lines = chunk.split('\n');
-                    
                     for (const line of lines) {
                         if (line.trim().startsWith('data: ')) {
                             const dataStr = line.replace('data: ', '').trim();
@@ -730,39 +421,26 @@
                                 aiDiv.querySelector('div').innerHTML = formatMathText(fullAIResponse);
                                 chatContainer.scrollTop = chatContainer.scrollHeight;
                             } catch (e) {
-                                console.error('解析数据块错误:', e);
+                                console.error('解析错误:', e);
                             }
                         }
                     }
                 }
-                
                 if (window.MathJax) {
-                    MathJax.typesetPromise([aiDiv.querySelector('div')]).then(() => {
-                        autoDrawFunction(fullAIResponse);
-                    });
+                    MathJax.typesetPromise([aiDiv.querySelector('div')]).then(() => autoDrawFunction(fullAIResponse));
                 }
                 chatHistory.push({ role: "assistant", content: fullAIResponse });
                 saveCurrentConversation(content, fullAIResponse);
-
             } catch (error) {
-                console.error('请求错误详情:', error);
-                
+                console.error('请求错误:', error);
                 chatHistory.pop();
-                
-                let errorMsg = "抱歉,连接出现问题。<br><br>";
-                errorMsg += "可能的原因:<br>";
-                errorMsg += "• API密钥无效或已过期<br>";
-                errorMsg += "• 网络连接问题<br>";
-                errorMsg += "• API服务暂时不可用<br><br>";
-                errorMsg += "请点击"配置API"按钮检查您的API密钥设置。";
-                
+                let errorMsg = "抱歉,连接出现问题<br><br>可能原因:<br>• API密钥无效<br>• 网络问题<br>• 服务不可用<br><br>请检查API配置";
                 aiDiv.querySelector('div').innerHTML = errorMsg;
             } finally {
                 sendBtn.disabled = false;
             }
         }
 
-        // 事件监听
         sendBtn.onclick = handleSend;
         messageInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -771,15 +449,11 @@
             }
         });
 
-        // 点击弹窗外部关闭
         window.onclick = function(event) {
             const modal = document.getElementById('config-modal');
-            if (event.target == modal) {
-                closeConfigModal();
-            }
+            if (event.target == modal) closeConfigModal();
         }
 
-        // 初始化
         loadHistory();
         console.log('✅ 数学核心素养AI已初始化');
         console.log('📊 自动绘图功能已启用');

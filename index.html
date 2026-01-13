@@ -177,7 +177,7 @@
         function deleteConversation(i) { if (confirm('删除这条历史？')) { conversations.splice(i, 1); saveHistory(); updateHistoryUI(); } }
         document.getElementById('clearAllHistory').onclick = () => { if (confirm('清空全部历史？')) { conversations = []; saveHistory(); updateHistoryUI(); } };
 
-        /* ============  Desmos 绘图（含极坐标自动识别）  ============ */
+        /* ============  Desmos 绘图（极坐标+直角坐标通用，已强制开启极坐标）  ============ */
         function polarToDesmos(expr) {
             // 若出现 theta/θ，则当成极坐标；去掉 r= 前缀后返回 r=...
             if (/(^r\s*=|\btheta\b|θ)/i.test(expr)) {
@@ -186,27 +186,45 @@
             }
             return expr; // 直角坐标原样返回
         }
+        function desmosSanitize(expr) {
+            return expr
+                .replace(/[（）]/g, c => c === '（' ? '(' : ')') // 中文括号→英文
+                .replace(/\s+/g, '')                // 去掉所有空格
+                .replace(/θ/g, 'theta');            // θ→theta
+        }
         function autoDrawFunction(text) {
             if (!text) return;
-            text = text.replace(/```[\s\S]*?```/g, '');                  // 去代码块
-            const marks = [...text.matchAll(/\[GRAPH:\s*([^\]]+)\]/gi)]; // 全局匹配
+            text = text.replace(/```[\s\S]*?```/g, '');
+            const marks = [...text.matchAll(/\[GRAPH:\s*([^\]]+)\]/gi)];
             if (!marks.length) { console.log('[Desmos] 未检测到任何 GRAPH 标记'); return; }
-            const lastMark = marks[marks.length - 1][1].trim();          // 只取最后一个
+            const lastMark = marks[marks.length - 1][1].trim();
             console.log('[Desmos] 选用最后一次 GRAPH → ', lastMark);
             const pieces = lastMark.split(/[;；]/).map(s => s.trim()).filter(Boolean);
             if (!pieces.length) return;
-            desmosEl.style.display = 'block';
-            if (!calculator) calculator = Desmos.GraphingCalculator(desmosEl, {
-    expressions: true,
-    settingsMenu: false,
-    polarMode: true   // ← 强制极坐标就绪
-});
-            calculator.setBlank();
+
+            // 1. 首次初始化：强制极坐标 + 弧度
+            if (!calculator) {
+                calculator = Desmos.GraphingCalculator(desmosEl, {
+                    expressions: true,
+                    settingsMenu: false,
+                    polarMode: true,
+                    angleMode: 'RADIANS'
+                });
+            }
+            calculator.setBlank();   // 清空旧图
+
             const colors = ['#2d70b3', '#388c46', '#c74440', '#fa7e19', '#6042a6'];
             pieces.forEach((e, i) => {
-                const desmosExpr = polarToDesmos(e); // ← 极坐标自动转换
+                const clean = desmosSanitize(e);
+                const desmosExpr = polarToDesmos(clean);
                 try {
-                    calculator.setExpression({ id: `g${i}`, latex: desmosExpr, color: colors[i % colors.length] });
+                    // 2. 强制每条表达式显式声明 polarMode
+                    calculator.setExpression({
+                        id: `g${i}`,
+                        latex: desmosExpr,
+                        color: colors[i % colors.length],
+                        polarMode: true   // ← 关键：强制极坐标
+                    });
                     console.log(`[Desmos] 绘制 → ${desmosExpr}`);
                 } catch (err) {
                     console.error('[Desmos] 表达式非法 → ', desmosExpr, err);
@@ -216,7 +234,7 @@
         document.getElementById('toggleDesmos').onclick = () => {
             const show = desmosEl.style.display === 'none' || desmosEl.style.display === '';
             desmosEl.style.display = show ? 'block' : 'none';
-            if (show && !calculator) calculator = Desmos.GraphingCalculator(desmosEl, { expressions: true, settingsMenu: false });
+            if (show && !calculator) calculator = Desmos.GraphingCalculator(desmosEl, { expressions: true, settingsMenu: false, polarMode: true, angleMode: 'RADIANS' });
         };
 
         /* ============  UI 辅助  ============ */

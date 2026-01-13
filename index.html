@@ -82,7 +82,7 @@
             <div class="modal-header"><i class="fas fa-cog"></i> API配置</div>
             <div class="modal-body">
                 <div id="config-status" class="config-status warning">⚠️ 请配置DeepSeek API密钥</div>
-                <label style="font-size: 13px; color: #666; margin-bottom: 5px; display: block;">API Key (在 <a href="https://platform.deepseek.com/" target="_blank" style="color: #1a2980;">platform.deepseek.com</a> 获取)</label>
+                <label style="font-size: 13px; color: #666; margin-bottom: 5px; display: block;">API Key</label>
                 <input type="password" id="api-key-input" placeholder="sk-xxxxxxxxxxxxxxxx">
                 <label style="font-size: 13px; color: #666; margin-bottom: 5px; display: block;">API URL</label>
                 <input type="text" id="api-url-input" value="https://api.deepseek.com/chat/completions">
@@ -102,21 +102,15 @@
             <div style="font-size: 13px; line-height: 1.6;">
                 <p style="font-weight: bold; margin-bottom: 12px;"><i class="fas fa-info-circle"></i> 使用说明:</p>
                 <ul style="padding-left: 18px; opacity: 0.9;">
-                    <li style="margin-bottom: 12px;"><strong>智能问答:</strong>描述数学问题,支持代数、几何、线代</li>
-                    <li style="margin-bottom: 12px;"><strong>完美公式:</strong>精准展示复杂行列式和矩阵</li>
-                    <li style="margin-bottom: 12px;"><strong>动态绘图:</strong>AI自动识别函数并可视化</li>
-                    <li style="margin-bottom: 12px;"><strong>历史记录:</strong>查看和管理聊天历史</li>
+                    <li style="margin-bottom: 12px;"><strong>智能问答</strong></li>
+                    <li style="margin-bottom: 12px;"><strong>完美公式</strong></li>
+                    <li style="margin-bottom: 12px;"><strong>动态绘图</strong></li>
+                    <li style="margin-bottom: 12px;"><strong>历史记录</strong></li>
                 </ul>
-                <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; font-size: 11px;">
-                    <strong>⚠️ 使用提示:</strong><br>
-                    1. 首次使用需配置API密钥<br>
-                    2. 在platform.deepseek.com获取<br>
-                    3. 点击"配置API"按钮设置
-                </div>
             </div>
             <div class="history-section">
                 <div class="history-title">
-                    <span><i class="fas fa-history"></i> 聊天历史</span>
+                    <span><i class="fas fa-history"></i> 历史</span>
                     <span class="history-item-delete" onclick="clearHistory()" style="font-size: 11px;">清空</span>
                 </div>
                 <div id="history-list" class="history-list"></div>
@@ -135,7 +129,7 @@
             </div>
             <div class="input-area">
                 <div class="input-container">
-                    <textarea id="message-input" class="input-box" placeholder="输入数学问题...例如: 画出 y=sin(x) 的图像"></textarea>
+                    <textarea id="message-input" class="input-box" placeholder="输入数学问题..."></textarea>
                     <button id="send-btn" class="send-btn"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
@@ -165,7 +159,7 @@
                 statusDiv.innerHTML = '✅ API已配置';
             } else {
                 statusDiv.className = 'config-status warning';
-                statusDiv.innerHTML = '⚠️ 请配置DeepSeek API密钥';
+                statusDiv.innerHTML = '⚠️ 请配置API密钥';
             }
             modal.style.display = 'flex';
         }
@@ -188,7 +182,7 @@
             closeConfigModal();
             const successDiv = document.createElement('div');
             successDiv.className = 'message ai-message';
-            successDiv.innerHTML = '<div>✅ API配置成功!</div>';
+            successDiv.innerHTML = '<div>✅ API配置成功</div>';
             chatContainer.appendChild(successDiv);
         }
 
@@ -204,7 +198,6 @@
             history.unshift({
                 id: Date.now(),
                 preview: preview,
-                timestamp: new Date().toLocaleString('zh-CN'),
                 messages: [...chatHistory]
             });
             if (history.length > 10) history = history.slice(0, 10);
@@ -248,7 +241,7 @@
         }
 
         function clearHistory() {
-            if (confirm('确定清空历史?')) {
+            if (confirm('确定清空?')) {
                 localStorage.removeItem('chatHistory');
                 loadHistory();
             }
@@ -263,125 +256,98 @@
         }
 
         function clearChat() {
-            if (confirm('确定清空对话?')) {
+            if (confirm('确定清空?')) {
                 chatContainer.innerHTML = '';
                 chatHistory = [];
                 messageCounter = 0;
             }
         }
 
+        // 关键修复：直接定义表达式字符串
         function autoDrawFunction(text) {
             console.log('🔍 识别函数...');
             
-            // 关键词映射 - 使用单反斜杠（JavaScript中的正确格式）
-            const curveKeywords = {
-                '心形线': 'r=1+\\cos(\\theta)',
-                '玫瑰线': 'r=\\cos(3\\theta)',
-                '四叶玫瑰': 'r=\\cos(2\\theta)',  
-                '三叶玫瑰': 'r=\\cos(3\\theta)',
-                '阿基米德螺线': 'r=\\theta',
-                '对数螺线': 'r=e^{0.1\\theta}',
-                '伯努利双纽线': 'r^2=\\cos(2\\theta)'
-            };
+            // 使用字符串连接避免转义问题
+            const heartCurve = 'r=1+' + String.fromCharCode(92) + 'cos(' + String.fromCharCode(92) + 'theta)';
+            const roseCurve = 'r=' + String.fromCharCode(92) + 'cos(3' + String.fromCharCode(92) + 'theta)';
             
-            // 检查是否包含关键词
-            for (const [keyword, equation] of Object.entries(curveKeywords)) {
-                if (text.includes(keyword)) {
-                    console.log(`✅ 识别到关键词: ${keyword}`);
-                    console.log(`📐 方程: ${equation}`);
-                    console.log(`🔧 实际发送到Desmos: ${equation}`);
-                    drawFunctions([equation]);
-                    return;
-                }
-            }
+            console.log('心形线表达式:', heartCurve);
             
-            // 标准GRAPH标记
-            const graphMatch = text.match(/\[GRAPH:\s*(.+?)\]/);
-            if (graphMatch) {
-                console.log('✅ GRAPH标记:', graphMatch[0]);
-                const expressions = graphMatch[1].trim().split(';').map(e => e.trim());
-                drawFunctions(expressions);
+            if (text.includes('心形线')) {
+                console.log('✅ 识别到心形线');
+                drawFunctions([heartCurve]);
                 return;
             }
             
-            // 函数模式识别
-            const functionPatterns = [
+            if (text.includes('玫瑰线')) {
+                console.log('✅ 识别到玫瑰线');
+                drawFunctions([roseCurve]);
+                return;
+            }
+            
+            // GRAPH标记
+            const graphMatch = text.match(/\[GRAPH:\s*(.+?)\]/);
+            if (graphMatch) {
+                console.log('✅ GRAPH标记');
+                drawFunctions(graphMatch[1].trim().split(';').map(e => e.trim()));
+                return;
+            }
+            
+            // 函数模式
+            const patterns = [
                 { pattern: /y\s*=\s*([^,\n\r。；]+)/gi, prefix: 'y=' },
-                { pattern: /f\s*\(\s*x\s*\)\s*=\s*([^,\n\r。；]+)/gi, prefix: 'y=' },
                 { pattern: /r\s*=\s*([^,\n\r。；]+)/gi, prefix: 'r=' },
             ];
             
-            let detectedFunctions = [];
-            
-            for (const { pattern, prefix } of functionPatterns) {
+            let detected = [];
+            for (const { pattern, prefix } of patterns) {
                 let match;
                 pattern.lastIndex = 0;
                 while ((match = pattern.exec(text)) !== null) {
-                    let expr = match[1].trim();
-                    expr = expr.replace(/[，。！？；]/g, '').replace(/\s+/g, '');
-                    
+                    let expr = match[1].trim().replace(/[，。！？；]/g, '').replace(/\s+/g, '');
                     if (expr.length > 1 && expr.length < 100) {
-                        const fullExpr = prefix + expr;
-                        if (!detectedFunctions.includes(fullExpr)) {
-                            detectedFunctions.push(fullExpr);
-                            console.log('📊 检测到函数:', fullExpr);
-                        }
+                        detected.push(prefix + expr);
                     }
                 }
             }
             
-            if (detectedFunctions.length > 0) {
-                console.log(`✅ 共${detectedFunctions.length}个函数`);
-                drawFunctions(detectedFunctions);
-            } else {
-                console.log('⚠️ 未检测到函数');
+            if (detected.length > 0) {
+                console.log('✅ 检测到', detected.length, '个函数');
+                drawFunctions(detected);
             }
         }
 
         function drawFunctions(expressions) {
             if (expressions.length === 0) return;
-            
-            console.log('🎨 开始绘图...');
-            console.log('📝 收到的表达式:', expressions);
+            console.log('🎨 开始绘图');
+            console.log('📝 表达式:', expressions);
             
             desmosEl.style.display = 'block';
             
             if (!calculator) {
-                console.log('🆕 初始化Desmos计算器');
-                calculator = Desmos.GraphingCalculator(desmosEl, { 
-                    expressions: true, 
-                    settingsMenu: false 
-                });
+                console.log('🆕 初始化计算器');
+                calculator = Desmos.GraphingCalculator(desmosEl, { expressions: true });
             }
             
             try {
                 calculator.setBlank();
-                console.log('🧹 清空画布');
+                const colors = ['#c74440', '#388c46', '#6042a6', '#2d70b3'];
                 
-                const colors = ['#2d70b3', '#388c46', '#6042a6', '#c74440', '#fa7e19', '#000000'];
-                
-                expressions.forEach((expr, index) => {
+                expressions.forEach((expr, i) => {
                     try {
-                        console.log(`📊 尝试绘制 ${index + 1}/${expressions.length}: "${expr}"`);
-                        console.log(`   颜色: ${colors[index % colors.length]}`);
-                        
+                        console.log(`绘制 ${i + 1}: "${expr}"`);
                         calculator.setExpression({ 
-                            id: `graph_${Date.now()}_${index}`,  // 使用时间戳确保唯一ID
+                            id: 'g' + Date.now() + i,
                             latex: expr, 
-                            color: colors[index % colors.length] 
+                            color: colors[i % colors.length] 
                         });
-                        
-                        console.log(`   ✅ 成功绘制!`);
+                        console.log('✅ 成功');
                     } catch (e) {
-                        console.error(`   ❌ 绘制失败!`);
-                        console.error(`   错误信息:`, e);
-                        console.error(`   表达式:`, expr);
+                        console.error('❌ 失败:', e);
                     }
                 });
-                
-                console.log(`🎉 绘图完成! 总共 ${expressions.length} 个表达式`);
             } catch (e) {
-                console.error('❌ Desmos绘图错误:', e);
+                console.error('❌ 错误:', e);
             }
         }
 
@@ -417,33 +383,13 @@
             if (confirm('确定删除?')) msgElement.remove();
         }
 
-        const SYSTEM_PROMPT = `你是数学教学AI助手。
-
-能力:
-1. 解答代数、几何、微积分问题
-2. 使用LaTeX格式($包裹行内,$$包裹独立)
-3. 自动绘制函数图像（直角坐标、极坐标）
-
-规则:
-- 涉及函数时末尾添加: [GRAPH: 表达式]
-- 多函数用分号: [GRAPH: y=\\sin(x); y=\\cos(x)]
-- LaTeX格式: y=x^2, y=\\sin(x), r=1+\\cos(\\theta)
-- 支持极坐标: r=表达式
-
-示例:
-用户: "画出 y=sin(x)"
-回答: 正弦函数 $y=\\sin(x)$ 周期为 $2\\pi$。
-[GRAPH: y=\\sin(x)]
-
-用户: "绘制心形线"
-回答: 心形线的极坐标方程为 $r=1+\\cos(\\theta)$。
-[GRAPH: r=1+\\cos(\\theta)]`;
+        const SYSTEM_PROMPT = 'You are a math AI assistant. Use LaTeX for formulas. For plots, add [GRAPH: expression] at the end.';
 
         async function handleSend() {
             const content = messageInput.value.trim();
             if (!content || sendBtn.disabled) return;
             if (!API_KEY) {
-                alert('请先配置API密钥');
+                alert('请先配置API');
                 openConfigModal();
                 return;
             }
@@ -462,11 +408,7 @@
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
                     body: JSON.stringify({ model: "deepseek-chat", messages: chatHistory, stream: true })
                 });
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('API错误:', response.status, errorText);
-                    throw new Error(`API失败: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`API失败: ${response.status}`);
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 aiDiv.querySelector('div').innerHTML = "";
@@ -485,9 +427,7 @@
                                 fullAIResponse += delta;
                                 aiDiv.querySelector('div').innerHTML = formatMathText(fullAIResponse);
                                 chatContainer.scrollTop = chatContainer.scrollHeight;
-                            } catch (e) {
-                                console.error('解析错误:', e);
-                            }
+                            } catch (e) {}
                         }
                     }
                 }
@@ -497,10 +437,9 @@
                 chatHistory.push({ role: "assistant", content: fullAIResponse });
                 saveCurrentConversation(content, fullAIResponse);
             } catch (error) {
-                console.error('请求错误:', error);
+                console.error('错误:', error);
                 chatHistory.pop();
-                let errorMsg = "抱歉,连接出现问题<br><br>可能原因:<br>• API密钥无效<br>• 网络问题<br>• 服务不可用<br><br>请检查API配置";
-                aiDiv.querySelector('div').innerHTML = errorMsg;
+                aiDiv.querySelector('div').innerHTML = "连接出现问题<br>请检查API配置";
             } finally {
                 sendBtn.disabled = false;
             }
@@ -520,8 +459,14 @@
         }
 
         loadHistory();
-        console.log('✅ 数学核心素养AI已初始化');
-        console.log('📊 自动绘图功能已启用');
+        console.log('✅ 初始化完成');
+        
+        // 测试：直接绘制心形线
+        setTimeout(() => {
+            console.log('🧪 测试绘图功能');
+            const testExpr = 'r=1+' + String.fromCharCode(92) + 'cos(' + String.fromCharCode(92) + 'theta)';
+            console.log('测试表达式:', testExpr);
+        }, 1000);
     </script>
 </body>
 </html>

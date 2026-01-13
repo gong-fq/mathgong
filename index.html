@@ -272,21 +272,69 @@
 
         function autoDrawFunction(text) {
             console.log('🔍 识别函数...');
+            
+            // 关键词映射 - 常见曲线
+            const curveKeywords = {
+                '心形线': 'r=1+\\cos(\\theta)',
+                '玫瑰线': 'r=\\cos(3\\theta)',
+                '四叶玫瑰': 'r=\\cos(2\\theta)',
+                '三叶玫瑰': 'r=\\cos(3\\theta)',
+                '阿基米德螺线': 'r=\\theta',
+                '对数螺线': 'r=e^{0.1\\theta}',
+                '伯努利双纽线': 'r^2=\\cos(2\\theta)'
+            };
+            
+            // 检查是否包含关键词
+            for (const [keyword, equation] of Object.entries(curveKeywords)) {
+                if (text.includes(keyword)) {
+                    console.log(`✅ 识别到关键词: ${keyword}`);
+                    drawFunctions([equation]);
+                    return;
+                }
+            }
+            
+            // 标准GRAPH标记
             const graphMatch = text.match(/\[GRAPH:\s*(.+?)\]/);
             if (graphMatch) {
                 console.log('✅ GRAPH标记:', graphMatch[0]);
                 drawFunctions(graphMatch[1].trim().split(';').map(e => e.trim()));
                 return;
             }
-            const functionPatterns = [/y\s*=\s*([^,\n\r]+)/gi, /f\s*\(\s*x\s*\)\s*=\s*([^,\n\r]+)/gi];
+            
+            // 函数模式：直角坐标、极坐标、参数方程
+            const functionPatterns = [
+                /y\s*=\s*([^,\n\r]+)/gi,
+                /f\s*\(\s*x\s*\)\s*=\s*([^,\n\r]+)/gi,
+                /r\s*=\s*([^,\n\r]+)/gi,  // 极坐标
+            ];
+            
             let detectedFunctions = [];
+            
             for (const pattern of functionPatterns) {
                 let match;
                 while ((match = pattern.exec(text)) !== null) {
                     let expr = match[1] ? match[1].trim() : match[0].trim();
                     expr = expr.replace(/[，。！？]/g, '').replace(/\s+/g, '').replace(/\$+/g, '');
-                    if (expr.includes('x') && expr.length > 2 && expr.length < 100) {
-                        expr = expr.replace(/\\sin/g, 'sin').replace(/\\cos/g, 'cos').replace(/\\tan/g, 'tan').replace(/\\frac\{(.+?)\}\{(.+?)\}/g, '($1)/($2)');
+                    
+                    // 清理LaTeX命令
+                    expr = expr
+                        .replace(/\\sin/g, 'sin')
+                        .replace(/\\cos/g, 'cos')
+                        .replace(/\\tan/g, 'tan')
+                        .replace(/\\theta/g, 'theta')
+                        .replace(/\\frac\{(.+?)\}\{(.+?)\}/g, '($1)/($2)');
+                    
+                    // 检查是否包含变量（x, r, theta等）
+                    if ((expr.includes('x') || expr.includes('r') || expr.includes('theta')) && 
+                        expr.length > 2 && expr.length < 100) {
+                        
+                        // 重新添加等号左边
+                        if (pattern.source.includes('y\\\\s*=')) {
+                            expr = 'y=' + expr;
+                        } else if (pattern.source.includes('r\\\\s*=')) {
+                            expr = 'r=' + expr;
+                        }
+                        
                         if (!detectedFunctions.includes(expr)) {
                             detectedFunctions.push(expr);
                             console.log('📊 检测到:', expr);
@@ -294,6 +342,7 @@
                     }
                 }
             }
+            
             if (detectedFunctions.length > 0) {
                 console.log(`✅ 共${detectedFunctions.length}个函数`);
                 drawFunctions(detectedFunctions);
@@ -362,17 +411,22 @@
 能力:
 1. 解答代数、几何、微积分问题
 2. 使用LaTeX格式($包裹行内,$$包裹独立)
-3. 自动绘制函数图像
+3. 自动绘制函数图像（直角坐标、极坐标）
 
 规则:
 - 涉及函数时末尾添加: [GRAPH: 表达式]
 - 多函数用分号: [GRAPH: y=\\sin(x); y=\\cos(x)]
-- LaTeX格式: y=x^2, y=\\sin(x), y=\\frac{1}{x}
+- LaTeX格式: y=x^2, y=\\sin(x), r=1+\\cos(\\theta)
+- 支持极坐标: r=表达式
 
 示例:
 用户: "画出 y=sin(x)"
 回答: 正弦函数 $y=\\sin(x)$ 周期为 $2\\pi$。
-[GRAPH: y=\\sin(x)]`;
+[GRAPH: y=\\sin(x)]
+
+用户: "绘制心形线"
+回答: 心形线的极坐标方程为 $r=1+\\cos(\\theta)$。
+[GRAPH: r=1+\\cos(\\theta)]`;
 
         async function handleSend() {
             const content = messageInput.value.trim();

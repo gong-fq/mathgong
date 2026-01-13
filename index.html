@@ -244,407 +244,485 @@
         </div>
     </div>
 
-    <script>
-        // 配置 - 使用 Netlify Serverless Function（API密钥已安全存储在服务器端）
-        const API_URL = '/.netlify/functions/chat-stream';
+<script>
+    // 配置 - 使用 Netlify Serverless Function（API密钥已安全存储在服务器端）
+    const API_URL = '/.netlify/functions/chat-stream';
 
-        const chatContainer = document.getElementById('chatContainer');
-        const messageInput = document.getElementById('messageInput');
-        const sendBtn = document.getElementById('sendBtn');
-        const desmosEl = document.getElementById('desmos-container');
-        const historyList = document.getElementById('historyList');
+    const chatContainer = document.getElementById('chatContainer');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const desmosEl = document.getElementById('desmos-container');
+    const historyList = document.getElementById('historyList');
 
-        let calculator = null;
-        let chatHistory = [{ 
-            role: "system", 
-            content: `你是一个数学教育专家。要求:
+    let calculator = null;
+    let chatHistory = [{ 
+        role: "system", 
+        content: `你是一个数学教育专家。要求:
 1. 矩阵用 pmatrix,行列式用 vmatrix。
 2. 展示分式嵌套行列式时必须完整。
 3. 变量包裹在 $ 中。
 4. 复杂公式使用 $$。
 5. **重要**：当回答涉及任何函数或公式时（包括概率密度函数、分布函数、物理公式等），必须在回答末尾添加 [GRAPH: 函数表达式] 标记。
-6. 函数表达式要求：使用标准数学表示，建议格式：
+6. 函数表达式要求：使用简单直接的Desmos兼容格式：
    - 线性: [GRAPH: y = 2x + 1]
-   - 二次: [GRAPH: y = x^{2}]
-   - 三角: [GRAPH: y = \\sin(x)]
-   - 指数: [GRAPH: y = e^{x}]
-   - 高斯: [GRAPH: y = \\frac{1}{\\sqrt{2\\pi}} e^{-\\frac{x^{2}}{2}}]
-   - 多个函数用分号分隔: [GRAPH: y = \\sin(x); y = \\cos(x)]
-7. 即使用户只是询问函数名称（如"正态分布"、"状态密度函数"），也要给出完整公式并添加图形标记。` 
-        }];
-        let conversations = []; // 存储所有对话历史
-        let messageCounter = 0; // 消息计数器
+   - 二次: [GRAPH: y = x^2]
+   - 三角: [GRAPH: y = sin(x)]
+   - 指数: [GRAPH: y = e^x]
+   - 高斯: [GRAPH: y = (1/(sqrt(2*pi)))*e^(-x^2/2)]
+   - 多个函数用分号分隔: [GRAPH: y = sin(x); y = cos(x)]
+7. 不要使用复杂的LaTeX格式，使用简单的数学表达式。
+8. 即使用户只是询问函数名称（如"正态分布"、"状态密度函数"），也要给出完整公式并添加图形标记。` 
+    }];
+    let conversations = []; // 存储所有对话历史
+    let messageCounter = 0; // 消息计数器
 
-        // 从localStorage加载历史记录
-        function loadHistory() {
-            const saved = localStorage.getItem('chatConversations');
-            if (saved) {
-                conversations = JSON.parse(saved);
-                updateHistoryUI();
-            }
+    // 检查Desmos API是否加载成功
+    function checkDesmosAPI() {
+        if (typeof Desmos === 'undefined') {
+            console.error('❌ Desmos API未加载！请检查网络连接和API密钥');
+            return false;
         }
+        console.log('✅ Desmos API已加载');
+        return true;
+    }
 
-        // 保存历史记录到localStorage
-        function saveHistory() {
-            localStorage.setItem('chatConversations', JSON.stringify(conversations));
+    // 从localStorage加载历史记录
+    function loadHistory() {
+        const saved = localStorage.getItem('chatConversations');
+        if (saved) {
+            conversations = JSON.parse(saved);
+            updateHistoryUI();
         }
+    }
 
-        // 更新历史记录UI
-        function updateHistoryUI() {
-            historyList.innerHTML = '';
-            conversations.forEach((conv, index) => {
-                const div = document.createElement('div');
-                div.className = 'history-item';
-                div.innerHTML = `
-                    <span style="flex: 1;" title="${conv.preview}">${conv.title}</span>
-                    <span class="history-item-delete" data-index="${index}">×</span>
-                `;
-                div.querySelector('span:first-child').onclick = () => loadConversation(index);
-                div.querySelector('.history-item-delete').onclick = (e) => {
-                    e.stopPropagation();
-                    deleteConversation(index);
-                };
-                historyList.appendChild(div);
+    // 保存历史记录到localStorage
+    function saveHistory() {
+        localStorage.setItem('chatConversations', JSON.stringify(conversations));
+    }
+
+    // 更新历史记录UI
+    function updateHistoryUI() {
+        historyList.innerHTML = '';
+        conversations.forEach((conv, index) => {
+            const div = document.createElement('div');
+            div.className = 'history-item';
+            div.innerHTML = `
+                <span style="flex: 1;" title="${conv.preview}">${conv.title}</span>
+                <span class="history-item-delete" data-index="${index}">×</span>
+            `;
+            div.querySelector('span:first-child').onclick = () => loadConversation(index);
+            div.querySelector('.history-item-delete').onclick = (e) => {
+                e.stopPropagation();
+                deleteConversation(index);
+            };
+            historyList.appendChild(div);
+        });
+    }
+
+    // 保存当前对话
+    function saveCurrentConversation(userMsg, aiMsg) {
+        const conv = {
+            title: userMsg.substring(0, 20) + (userMsg.length > 20 ? '...' : ''),
+            preview: userMsg,
+            timestamp: Date.now(),
+            messages: [...chatHistory]
+        };
+        conversations.unshift(conv);
+        if (conversations.length > 20) conversations.pop(); // 最多保存20条
+        saveHistory();
+        updateHistoryUI();
+    }
+
+    // 加载历史对话
+    function loadConversation(index) {
+        if (confirm('加载此对话将清空当前内容,是否继续?')) {
+            const conv = conversations[index];
+            chatHistory = [...conv.messages];
+            chatContainer.innerHTML = '';
+            
+            // 重新渲染所有消息(跳过system消息)
+            chatHistory.forEach((msg, idx) => {
+                if (msg.role === 'user') {
+                    addMessageToUI('user', msg.content, false);
+                } else if (msg.role === 'assistant') {
+                    addMessageToUI('ai', msg.content, false);
+                }
             });
         }
+    }
 
-        // 保存当前对话
-        function saveCurrentConversation(userMsg, aiMsg) {
-            const conv = {
-                title: userMsg.substring(0, 20) + (userMsg.length > 20 ? '...' : ''),
-                preview: userMsg,
-                timestamp: Date.now(),
-                messages: [...chatHistory]
-            };
-            conversations.unshift(conv);
-            if (conversations.length > 20) conversations.pop(); // 最多保存20条
+    // 删除单条历史记录
+    function deleteConversation(index) {
+        if (confirm('确定要删除这条历史记录吗?')) {
+            conversations.splice(index, 1);
             saveHistory();
             updateHistoryUI();
         }
+    }
 
-        // 加载历史对话
-        function loadConversation(index) {
-            if (confirm('加载此对话将清空当前内容,是否继续?')) {
-                const conv = conversations[index];
-                chatHistory = [...conv.messages];
-                chatContainer.innerHTML = '';
-                
-                // 重新渲染所有消息(跳过system消息)
-                chatHistory.forEach((msg, idx) => {
-                    if (msg.role === 'user') {
-                        addMessageToUI('user', msg.content, false);
-                    } else if (msg.role === 'assistant') {
-                        addMessageToUI('ai', msg.content, false);
+    // 清空所有历史记录
+    document.getElementById('clearAllHistory').onclick = () => {
+        if (confirm('确定要清空所有历史记录吗?此操作不可恢复!')) {
+            conversations = [];
+            saveHistory();
+            updateHistoryUI();
+        }
+    };
+
+    // 清空当前对话
+    document.getElementById('clearChat').onclick = () => {
+        if (confirm('确定要清空当前对话吗?')) {
+            chatHistory = [chatHistory[0]]; // 保留system消息
+            chatContainer.innerHTML = '<div class="message ai-message">对话已清空。请问有什么数学问题我可以帮您?</div>';
+        }
+    };
+
+    // 图形开关
+    document.getElementById('toggleDesmos').onclick = () => {
+        const show = desmosEl.style.display === 'none' || desmosEl.style.display === '';
+        desmosEl.style.display = show ? 'block' : 'none';
+        
+        if (show) {
+            setTimeout(() => {
+                initializeDesmos();
+                // 绘制一个测试函数
+                drawTestFunction();
+            }, 100);
+        }
+    };
+
+    // 初始化Desmos计算器
+    function initializeDesmos() {
+        if (!checkDesmosAPI()) return;
+        
+        if (!calculator) {
+            console.log('🔄 初始化Desmos计算器');
+            calculator = Desmos.GraphingCalculator(desmosEl, { 
+                expressions: true,
+                settingsMenu: false,
+                zoomButtons: true,
+                expressionsCollapsed: true,
+                xAxisLabel: 'x',
+                yAxisLabel: 'y',
+                xAxisStep: 1,
+                yAxisStep: 1
+            });
+            console.log('✅ Desmos计算器初始化成功');
+        }
+        return calculator;
+    }
+
+    // 绘制测试函数（用于验证Desmos是否工作）
+    function drawTestFunction() {
+        if (!calculator) {
+            calculator = initializeDesmos();
+        }
+        
+        if (calculator) {
+            try {
+                calculator.setExpressions([
+                    {
+                        id: 'test_function',
+                        latex: 'y = x^2',
+                        color: Desmos.Colors.BLUE,
+                        lineStyle: Desmos.Styles.SOLID,
+                        lineWidth: 2
                     }
+                ]);
+                
+                calculator.setMathBounds({
+                    left: -5,
+                    right: 5,
+                    bottom: -2,
+                    top: 10
                 });
+                
+                console.log('✅ 测试函数绘制成功: y = x^2');
+            } catch (error) {
+                console.error('❌ 绘制测试函数失败:', error);
             }
         }
+    }
 
-        // 删除单条历史记录
-        function deleteConversation(index) {
-            if (confirm('确定要删除这条历史记录吗?')) {
-                conversations.splice(index, 1);
-                saveHistory();
-                updateHistoryUI();
-            }
-        }
-
-        // 清空所有历史记录
-        document.getElementById('clearAllHistory').onclick = () => {
-            if (confirm('确定要清空所有历史记录吗?此操作不可恢复!')) {
-                conversations = [];
-                saveHistory();
-                updateHistoryUI();
-            }
-        };
-
-        // 清空当前对话
-        document.getElementById('clearChat').onclick = () => {
-            if (confirm('确定要清空当前对话吗?')) {
-                chatHistory = [chatHistory[0]]; // 保留system消息
-                chatContainer.innerHTML = '<div class="message ai-message">对话已清空。请问有什么数学问题我可以帮您?</div>';
-            }
-        };
-
-        // 图形开关
-        document.getElementById('toggleDesmos').onclick = () => {
-            const show = desmosEl.style.display === 'none' || desmosEl.style.display === '';
-            desmosEl.style.display = show ? 'block' : 'none';
-            if (show && !calculator) {
-                calculator = Desmos.GraphingCalculator(desmosEl, { 
-                    expressions: true, 
-                    settingsMenu: false,
-                    zoomButtons: true,
-                    expressionsCollapsed: true
-                });
-            }
-        };
-
-        // 改进版：自动检测并绘制函数
-        function autoDrawFunction(text) {
-            console.log('🔍 检查文本中是否有GRAPH标记:', text.substring(0, 200));
+    // 简化版：自动检测并绘制函数
+    function autoDrawFunction(text) {
+        console.log('🔍 检查文本中是否有GRAPH标记:', text);
+        
+        const graphMatch = text.match(/\[GRAPH:\s*(.+?)\]/);
+        if (graphMatch) {
+            console.log('✅ 找到GRAPH标记:', graphMatch[1]);
+            const exprs = graphMatch[1].trim();
             
-            const graphMatch = text.match(/\[GRAPH:\s*(.+?)\]/);
-            if (graphMatch) {
-                console.log('✅ 找到GRAPH标记:', graphMatch[0]);
-                const exprs = graphMatch[1].trim();
+            // 确保Desmos容器可见
+            if (desmosEl.style.display !== 'block') {
+                desmosEl.style.display = 'block';
+                setTimeout(() => {
+                    if (calculator) calculator.resize();
+                }, 50);
+            }
+            
+            // 确保计算器初始化
+            if (!calculator) {
+                calculator = initializeDesmos();
+            }
+            
+            if (!calculator) {
+                console.error('❌ Desmos计算器初始化失败');
+                return;
+            }
+            
+            try {
+                // 清空之前的表达式
+                calculator.setExpressions([]);
                 
-                // 确保Desmos容器可见
-                if (desmosEl.style.display !== 'block') {
-                    desmosEl.style.display = 'block';
-                    // 等待DOM更新后重新计算布局
-                    setTimeout(() => {
-                        if (calculator) calculator.resize();
-                    }, 50);
-                }
+                // 支持多个函数（用分号分隔）
+                const expressionList = exprs.split(';').map(e => e.trim()).filter(e => e.length > 0);
                 
-                // 初始化calculator
-                if (!calculator) {
-                    console.log('🔄 初始化Desmos计算器');
-                    calculator = Desmos.GraphingCalculator(desmosEl, { 
-                        expressions: true, 
-                        settingsMenu: false,
-                        zoomButtons: true,
-                        expressionsCollapsed: true,
-                        keypad: false
-                    });
-                }
+                console.log('📊 解析到的表达式:', expressionList);
                 
-                try {
-                    // 清空之前的表达式
-                    calculator.setExpressions([]);
+                // 简单直接的表达式处理
+                expressionList.forEach((expr, index) => {
+                    let processedExpr = expr
+                        .replace(/\*/g, '\\cdot ')          // * 替换为 Desmos 乘法符号
+                        .replace(/pi/g, '\\pi')            // pi 替换为 \pi
+                        .replace(/\^/g, '^{')              // ^ 替换为 ^{
+                        .replace(/(\d)([a-zA-Z\(])/g, '$1\\cdot $2') // 数字后跟变量添加乘号
+                        .replace(/([a-zA-Z\)])(\d)/g, '$1\\cdot $2'); // 变量后跟数字添加乘号
                     
-                    // 支持多个函数（用分号分隔）
-                    const expressionList = exprs.split(';').map(e => e.trim()).filter(e => e.length > 0);
+                    // 确保表达式以 y = 开头（如果缺失）
+                    if (!processedExpr.includes('=')) {
+                        processedExpr = 'y = ' + processedExpr;
+                    }
                     
-                    console.log('📊 解析到的表达式列表:', expressionList);
+                    console.log(`📐 处理表达式 ${index + 1}: ${expr} -> ${processedExpr}`);
                     
-                    expressionList.forEach((expr, index) => {
-                        // 预处理表达式，使其符合Desmos语法
-                        let processedExpr = expr
-                            .replace(/pi/g, '\\pi')                     // pi -> \pi
-                            .replace(/\*/g, ' \\cdot ')                // * -> 空格\cdot空格
-                            .replace(/(\d)([a-zA-Z\(])/g, '$1 \\cdot $2') // 数字后跟字母或括号时添加 \cdot
-                            .replace(/([a-zA-Z\)])(\d)/g, '$1 \\cdot $2') // 字母或括号后跟数字时添加 \cdot
-                            .replace(/\^/g, '^{')                       // ^ -> ^{
-                            .replace(/(\})\s*(\d|\\pi)/g, '}^{$2}')    // 处理 } 后跟数字或pi的情况
-                            .replace(/exp\(/g, 'e^{')                   // exp( -> e^{
-                            .replace(/(e^{[^}]+)\)/g, '$1}')           // 闭合 e^{...)
-                            .replace(/sqrt\(/g, '\\sqrt{')              // sqrt( -> \sqrt{
-                            .replace(/(\\sqrt{[^}]+)\)/g, '$1}');       // 闭合 \sqrt{...)
-                        
-                        // 处理特殊的分式情况
-                        processedExpr = processedExpr
-                            .replace(/frac\{([^}]+)\}\{([^}]+)\}/g, '\\frac{$1}{$2}')
-                            .replace(/(\\frac{[^}]+}{[^}]+})/g, '($1)'); // 分式加括号
-                        
-                        // 确保等号两边有空格（Desmos偏好）
-                        processedExpr = processedExpr.replace(/=/g, ' = ');
-                        
-                        console.log(`📐 处理前: ${expr}`);
-                        console.log(`📐 处理后: ${processedExpr}`);
-                        
-                        // 为每个函数设置不同的颜色
-                        const colors = ['#2d70b3', '#388c46', '#6042a6', '#c74440', '#fa7e19', '#000000'];
-                        
-                        calculator.setExpression({ 
+                    // 为每个函数设置不同的颜色
+                    const colors = [
+                        Desmos.Colors.BLUE,
+                        Desmos.Colors.GREEN,
+                        Desmos.Colors.PURPLE,
+                        Desmos.Colors.RED,
+                        Desmos.Colors.ORANGE,
+                        Desmos.Colors.BLACK
+                    ];
+                    
+                    try {
+                        calculator.setExpression({
                             id: `graph_${Date.now()}_${index}`,
                             latex: processedExpr,
                             color: colors[index % colors.length],
                             lineWidth: 2,
                             lineStyle: Desmos.Styles.SOLID
                         });
+                        console.log(`✅ 成功绘制: ${processedExpr}`);
+                    } catch (exprError) {
+                        console.error(`❌ 无法绘制表达式 "${processedExpr}":`, exprError);
                         
-                        console.log(`✅ 已设置函数 ${index + 1}: ${processedExpr}`);
-                    });
-                    
-                    // 添加默认的坐标轴范围
-                    calculator.setMathBounds({
-                        left: -10,
-                        right: 10,
-                        bottom: -5,
-                        top: 5
-                    });
-                    
-                    console.log(`✅ 已绘制 ${expressionList.length} 个函数`);
-                    
-                } catch (e) {
-                    console.error('❌ Desmos绘图错误:', e);
-                    console.error('原始表达式:', exprs);
-                    
-                    // 尝试使用简单的表达式测试
-                    try {
-                        calculator.setExpression({
-                            id: 'test_line',
-                            latex: 'y = x',
-                            color: '#2d70b3'
-                        });
-                        console.log('✅ 测试直线绘制成功，说明Desmos工作正常');
-                    } catch (testError) {
-                        console.error('❌ 测试绘图也失败:', testError);
+                        // 尝试简化版本
+                        try {
+                            calculator.setExpression({
+                                id: `simple_${Date.now()}_${index}`,
+                                latex: 'y = x',
+                                color: colors[index % colors.length],
+                                lineWidth: 1,
+                                lineStyle: Desmos.Styles.DASHED
+                            });
+                        } catch (simpleError) {
+                            console.error('❌ 连简化版本也失败:', simpleError);
+                        }
                     }
-                }
-            } else {
-                console.log('⚠️ 未找到GRAPH标记');
+                });
+                
+                // 设置合适的视图范围
+                calculator.setMathBounds({
+                    left: -10,
+                    right: 10,
+                    bottom: -5,
+                    top: 5
+                });
+                
+                console.log(`✅ 已尝试绘制 ${expressionList.length} 个函数`);
+                
+            } catch (e) {
+                console.error('❌ Desmos绘图错误:', e);
+                drawTestFunction(); // 回退到测试函数
             }
+        } else {
+            console.log('⚠️ 未找到GRAPH标记');
         }
+    }
 
-        // 格式化输出
-        function formatMathText(text) {
-            let formatted = text.replace(/\\\\/g, '\\\\\\\\');
-            
-            // 移除GRAPH标记（只用于触发绘图，不需要显示）
-            formatted = formatted.replace(/\[GRAPH:\s*(.+?)\]/g, '');
-            
-            return marked.parse(formatted);
+    // 格式化输出
+    function formatMathText(text) {
+        let formatted = text.replace(/\\\\/g, '\\\\\\\\');
+        
+        // 移除GRAPH标记（只用于触发绘图，不需要显示）
+        formatted = formatted.replace(/\[GRAPH:\s*(.+?)\]/g, '');
+        
+        return marked.parse(formatted);
+    }
+
+    // 添加消息到UI
+    function addMessageToUI(role, text, enableDelete = true) {
+        const div = document.createElement('div');
+        div.className = `message ${role}-message`;
+        div.setAttribute('data-id', messageCounter++);
+        
+        if (enableDelete) {
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+            deleteBtn.onclick = () => deleteMessage(div);
+            div.appendChild(deleteBtn);
         }
-
-        // 添加消息到UI
-        function addMessageToUI(role, text, enableDelete = true) {
-            const div = document.createElement('div');
-            div.className = `message ${role}-message`;
-            div.setAttribute('data-id', messageCounter++);
-            
-            if (enableDelete) {
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
-                deleteBtn.onclick = () => deleteMessage(div);
-                div.appendChild(deleteBtn);
-            }
-            
-            const contentDiv = document.createElement('div');
-            contentDiv.innerHTML = role === 'ai' ? formatMathText(text) : text;
-            div.appendChild(contentDiv);
-            
-            chatContainer.appendChild(div);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-            
-            if (window.MathJax && role === 'ai') {
-                MathJax.typesetPromise([contentDiv]).then(() => {
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.innerHTML = role === 'ai' ? formatMathText(text) : text;
+        div.appendChild(contentDiv);
+        
+        chatContainer.appendChild(div);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        
+        if (window.MathJax && role === 'ai') {
+            MathJax.typesetPromise([contentDiv]).then(() => {
+                // 延迟执行Desmos绘图，确保MathJax渲染完成
+                setTimeout(() => {
                     autoDrawFunction(text);
-                });
-            }
-            
-            return div;
+                }, 500);
+            });
         }
+        
+        return div;
+    }
 
-        // 删除单条消息
-        function deleteMessage(msgElement) {
-            if (confirm('确定要删除这条消息吗?')) {
-                const msgId = parseInt(msgElement.getAttribute('data-id'));
-                msgElement.remove();
-            }
+    // 删除单条消息
+    function deleteMessage(msgElement) {
+        if (confirm('确定要删除这条消息吗?')) {
+            msgElement.remove();
         }
+    }
 
-        // 发送逻辑
-        async function handleSend() {
-            const content = messageInput.value.trim();
-            if (!content || sendBtn.disabled) return;
+    // 发送逻辑
+    async function handleSend() {
+        const content = messageInput.value.trim();
+        if (!content || sendBtn.disabled) return;
 
-            addMessageToUI('user', content);
-            messageInput.value = '';
-            sendBtn.disabled = true;
+        addMessageToUI('user', content);
+        messageInput.value = '';
+        sendBtn.disabled = true;
 
-            const aiDiv = addMessageToUI('ai', '<span class="thinking">思考中<span class="thinking-dot"></span><span class="thinking-dot"></span><span class="thinking-dot"></span></span>');
-            let fullAIResponse = "";
-            chatHistory.push({ role: "user", content: content });
+        const aiDiv = addMessageToUI('ai', '<span class="thinking">思考中<span class="thinking-dot"></span><span class="thinking-dot"></span><span class="thinking-dot"></span></span>');
+        let fullAIResponse = "";
+        chatHistory.push({ role: "user", content: content });
 
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json', 
-                    },
-                    body: JSON.stringify({ 
-                        model: "deepseek-chat", 
-                        messages: chatHistory, 
-                        stream: true 
-                    })
-                });
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json', 
+                },
+                body: JSON.stringify({ 
+                    model: "deepseek-chat", 
+                    messages: chatHistory, 
+                    stream: true 
+                })
+            });
 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('API返回错误:', response.status, errorText);
-                    throw new Error(`API请求失败: ${response.status}`);
-                }
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API返回错误:', response.status, errorText);
+                throw new Error(`API请求失败: ${response.status}`);
+            }
 
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                aiDiv.querySelector('div').innerHTML = ""; 
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            aiDiv.querySelector('div').innerHTML = ""; 
 
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    
-                    const chunk = decoder.decode(value);
-                    const lines = chunk.split('\n');
-                    
-                    for (const line of lines) {
-                        if (line.trim().startsWith('data: ')) {
-                            const dataStr = line.replace('data: ', '').trim();
-                            if (dataStr === '[DONE]') continue;
-                            try {
-                                const data = JSON.parse(dataStr);
-                                const delta = data.choices[0].delta.content || "";
-                                fullAIResponse += delta;
-                                aiDiv.querySelector('div').innerHTML = formatMathText(fullAIResponse);
-                                chatContainer.scrollTop = chatContainer.scrollHeight;
-                            } catch (e) {
-                                console.error('解析数据块错误:', e);
-                            }
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+                
+                for (const line of lines) {
+                    if (line.trim().startsWith('data: ')) {
+                        const dataStr = line.replace('data: ', '').trim();
+                        if (dataStr === '[DONE]') continue;
+                        try {
+                            const data = JSON.parse(dataStr);
+                            const delta = data.choices[0].delta.content || "";
+                            fullAIResponse += delta;
+                            aiDiv.querySelector('div').innerHTML = formatMathText(fullAIResponse);
+                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                        } catch (e) {
+                            console.error('解析数据块错误:', e);
                         }
                     }
                 }
-                
-                if (window.MathJax) {
-                    MathJax.typesetPromise([aiDiv.querySelector('div')]).then(() => {
+            }
+            
+            if (window.MathJax) {
+                MathJax.typesetPromise([aiDiv.querySelector('div')]).then(() => {
+                    // 延迟执行Desmos绘图
+                    setTimeout(() => {
                         autoDrawFunction(fullAIResponse);
-                    });
-                }
-                chatHistory.push({ role: "assistant", content: fullAIResponse });
-                saveCurrentConversation(content, fullAIResponse);
-
-            } catch (error) {
-                console.error('请求错误详情:', error);
-                
-                // 从历史记录中移除刚才的用户消息（因为没有得到回复）
-                chatHistory.pop();
-                
-                let errorMsg = "抱歉,连接出现问题。可能的原因:\n\n";
-                errorMsg += "1. API密钥无效或已过期\n";
-                errorMsg += "2. 网络连接问题\n";
-                errorMsg += "3. API服务暂时不可用\n";
-                errorMsg += "4. CORS跨域限制\n\n";
-                errorMsg += "请检查:\n";
-                errorMsg += "• 确认API_KEY是否有效\n";
-                errorMsg += "• 检查网络连接\n";
-                errorMsg += "• 查看浏览器控制台获取详细错误信息";
-                
-                aiDiv.querySelector('div').innerHTML = errorMsg.replace(/\n/g, '<br>');
-            } finally {
-                sendBtn.disabled = false;
+                    }, 300);
+                });
             }
+            chatHistory.push({ role: "assistant", content: fullAIResponse });
+            saveCurrentConversation(content, fullAIResponse);
+
+        } catch (error) {
+            console.error('请求错误详情:', error);
+            
+            chatHistory.pop();
+            
+            let errorMsg = "抱歉,连接出现问题。可能的原因:\n\n";
+            errorMsg += "1. API密钥无效或已过期\n";
+            errorMsg += "2. 网络连接问题\n";
+            errorMsg += "3. API服务暂时不可用\n\n";
+            errorMsg += "请检查控制台获取详细信息";
+            
+            aiDiv.querySelector('div').innerHTML = errorMsg.replace(/\n/g, '<br>');
+        } finally {
+            sendBtn.disabled = false;
         }
+    }
 
-        // 事件监听
-        sendBtn.onclick = handleSend;
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-            }
-        });
+    // 事件监听
+    sendBtn.onclick = handleSend;
+    messageInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    });
 
-        // 初始化加载历史记录
-        loadHistory();
+    // 页面加载完成后的初始化
+    window.addEventListener('load', function() {
+        console.log('📱 数学核心素养AI已加载');
+        console.log('🧮 MathJax状态:', typeof MathJax !== 'undefined' ? '✅ 可用' : '❌ 不可用');
+        console.log('🎯 Desmos状态:', typeof Desmos !== 'undefined' ? '✅ 可用' : '❌ 不可用');
         
-        // 页面加载完成后打印调试信息
-        window.addEventListener('load', function() {
-            console.log('📱 数学核心素养AI已加载');
-            console.log('🎯 Desmos API状态:', typeof Desmos !== 'undefined' ? '可用' : '不可用');
-            console.log('🧮 MathJax状态:', typeof MathJax !== 'undefined' ? '可用' : '不可用');
-        });
-    </script>
+        // 测试Desmos功能
+        setTimeout(() => {
+            if (typeof Desmos !== 'undefined') {
+                console.log('🧪 测试Desmos API...');
+                // 初始化并绘制测试函数
+                initializeDesmos();
+                drawTestFunction();
+            } else {
+                console.error('❌ Desmos API未加载！请检查:');
+                console.error('1. 网络连接是否正常');
+                console.error('2. API密钥是否有效');
+                console.error('3. 浏览器控制台是否有错误');
+            }
+        }, 1000);
+    });
+
+    // 初始化加载历史记录
+    loadHistory();
+</script>
 </body>
 </html>

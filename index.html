@@ -378,8 +378,11 @@
 
         // 自动检测并绘制函数
         function autoDrawFunction(text) {
+            console.log('🔍 检查文本中是否有GRAPH标记:', text.substring(0, 200));
+            
             const graphMatch = text.match(/\[GRAPH:\s*(.+?)\]/);
             if (graphMatch) {
+                console.log('✅ 找到GRAPH标记:', graphMatch[0]);
                 const exprs = graphMatch[1].trim();
                 
                 // 自动打开Desmos面板
@@ -408,20 +411,41 @@
                             latex: expr,
                             color: colors[index % colors.length]
                         });
+                        console.log(`📊 绘制函数 ${index + 1}: ${expr}`);
                     });
                     
                     console.log(`✅ 已绘制 ${expressionList.length} 个函数`);
                 } catch (e) {
-                    console.error('Desmos绘图错误:', e);
+                    console.error('❌ Desmos绘图错误:', e);
                     console.error('表达式:', exprs);
                 }
+            } else {
+                console.log('⚠️ 未找到GRAPH标记');
             }
         }
 
         // 格式化输出
         function formatMathText(text) {
             let formatted = text.replace(/\\\\/g, '\\\\\\\\');
-            return marked.parse(formatted);
+            
+            // 保护GRAPH标记，避免被Markdown处理
+            // 将 [GRAPH: ...] 临时替换为特殊标记
+            const graphMarkers = [];
+            formatted = formatted.replace(/\[GRAPH:\s*(.+?)\]/g, (match) => {
+                const index = graphMarkers.length;
+                graphMarkers.push(match);
+                return `___GRAPH_MARKER_${index}___`;
+            });
+            
+            // 使用marked处理
+            formatted = marked.parse(formatted);
+            
+            // 恢复GRAPH标记
+            graphMarkers.forEach((marker, index) => {
+                formatted = formatted.replace(`___GRAPH_MARKER_${index}___`, marker);
+            });
+            
+            return formatted;
         }
 
         // 添加消息到UI

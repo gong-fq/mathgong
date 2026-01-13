@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -264,13 +263,13 @@
 3. 变量包裹在 $ 中。
 4. 复杂公式使用 $$。
 5. **重要**：当回答涉及任何函数或公式时（包括概率密度函数、分布函数、物理公式等），必须在回答末尾添加 [GRAPH: 函数表达式] 标记。
-6. 函数表达式要求：使用标准数学表示，例如：
-   - 线性: [GRAPH: y=2x+1]
-   - 二次: [GRAPH: y=x^2]
-   - 三角: [GRAPH: y=sin(x)]
-   - 指数: [GRAPH: y=exp(x)]
-   - 高斯: [GRAPH: y=exp(-x^2/2)/sqrt(2*pi)]
-   - 多个函数用分号分隔: [GRAPH: y=sin(x); y=cos(x)]
+6. 函数表达式要求：使用标准数学表示，建议格式：
+   - 线性: [GRAPH: y = 2x + 1]
+   - 二次: [GRAPH: y = x^{2}]
+   - 三角: [GRAPH: y = \\sin(x)]
+   - 指数: [GRAPH: y = e^{x}]
+   - 高斯: [GRAPH: y = \\frac{1}{\\sqrt{2\\pi}} e^{-\\frac{x^{2}}{2}}]
+   - 多个函数用分号分隔: [GRAPH: y = \\sin(x); y = \\cos(x)]
 7. 即使用户只是询问函数名称（如"正态分布"、"状态密度函数"），也要给出完整公式并添加图形标记。` 
         }];
         let conversations = []; // 存储所有对话历史
@@ -372,11 +371,16 @@
             const show = desmosEl.style.display === 'none' || desmosEl.style.display === '';
             desmosEl.style.display = show ? 'block' : 'none';
             if (show && !calculator) {
-                calculator = Desmos.GraphingCalculator(desmosEl, { expressions: true, settingsMenu: false });
+                calculator = Desmos.GraphingCalculator(desmosEl, { 
+                    expressions: true, 
+                    settingsMenu: false,
+                    zoomButtons: true,
+                    expressionsCollapsed: true
+                });
             }
         };
 
-        // 自动检测并绘制函数
+        // 改进版：自动检测并绘制函数
         function autoDrawFunction(text) {
             console.log('🔍 检查文本中是否有GRAPH标记:', text.substring(0, 200));
             
@@ -385,39 +389,100 @@
                 console.log('✅ 找到GRAPH标记:', graphMatch[0]);
                 const exprs = graphMatch[1].trim();
                 
-                // 自动打开Desmos面板
-                desmosEl.style.display = 'block';
+                // 确保Desmos容器可见
+                if (desmosEl.style.display !== 'block') {
+                    desmosEl.style.display = 'block';
+                    // 等待DOM更新后重新计算布局
+                    setTimeout(() => {
+                        if (calculator) calculator.resize();
+                    }, 50);
+                }
                 
                 // 初始化calculator
                 if (!calculator) {
+                    console.log('🔄 初始化Desmos计算器');
                     calculator = Desmos.GraphingCalculator(desmosEl, { 
                         expressions: true, 
-                        settingsMenu: false 
+                        settingsMenu: false,
+                        zoomButtons: true,
+                        expressionsCollapsed: true,
+                        keypad: false
                     });
                 }
                 
                 try {
                     // 清空之前的表达式
-                    calculator.setBlank();
+                    calculator.setExpressions([]);
                     
                     // 支持多个函数（用分号分隔）
-                    const expressionList = exprs.split(';').map(e => e.trim());
+                    const expressionList = exprs.split(';').map(e => e.trim()).filter(e => e.length > 0);
+                    
+                    console.log('📊 解析到的表达式列表:', expressionList);
                     
                     expressionList.forEach((expr, index) => {
+                        // 预处理表达式，使其符合Desmos语法
+                        let processedExpr = expr
+                            .replace(/pi/g, '\\pi')                     // pi -> \pi
+                            .replace(/\*/g, ' \\cdot ')                // * -> 空格\cdot空格
+                            .replace(/(\d)([a-zA-Z\(])/g, '$1 \\cdot $2') // 数字后跟字母或括号时添加 \cdot
+                            .replace(/([a-zA-Z\)])(\d)/g, '$1 \\cdot $2') // 字母或括号后跟数字时添加 \cdot
+                            .replace(/\^/g, '^{')                       // ^ -> ^{
+                            .replace(/(\})\s*(\d|\\pi)/g, '}^{$2}')    // 处理 } 后跟数字或pi的情况
+                            .replace(/exp\(/g, 'e^{')                   // exp( -> e^{
+                            .replace(/(e^{[^}]+)\)/g, '$1}')           // 闭合 e^{...)
+                            .replace(/sqrt\(/g, '\\sqrt{')              // sqrt( -> \sqrt{
+                            .replace(/(\\sqrt{[^}]+)\)/g, '$1}');       // 闭合 \sqrt{...)
+                        
+                        // 处理特殊的分式情况
+                        processedExpr = processedExpr
+                            .replace(/frac\{([^}]+)\}\{([^}]+)\}/g, '\\frac{$1}{$2}')
+                            .replace(/(\\frac{[^}]+}{[^}]+})/g, '($1)'); // 分式加括号
+                        
+                        // 确保等号两边有空格（Desmos偏好）
+                        processedExpr = processedExpr.replace(/=/g, ' = ');
+                        
+                        console.log(`📐 处理前: ${expr}`);
+                        console.log(`📐 处理后: ${processedExpr}`);
+                        
                         // 为每个函数设置不同的颜色
                         const colors = ['#2d70b3', '#388c46', '#6042a6', '#c74440', '#fa7e19', '#000000'];
+                        
                         calculator.setExpression({ 
-                            id: `graph_${index}`,
-                            latex: expr,
-                            color: colors[index % colors.length]
+                            id: `graph_${Date.now()}_${index}`,
+                            latex: processedExpr,
+                            color: colors[index % colors.length],
+                            lineWidth: 2,
+                            lineStyle: Desmos.Styles.SOLID
                         });
-                        console.log(`📊 绘制函数 ${index + 1}: ${expr}`);
+                        
+                        console.log(`✅ 已设置函数 ${index + 1}: ${processedExpr}`);
+                    });
+                    
+                    // 添加默认的坐标轴范围
+                    calculator.setMathBounds({
+                        left: -10,
+                        right: 10,
+                        bottom: -5,
+                        top: 5
                     });
                     
                     console.log(`✅ 已绘制 ${expressionList.length} 个函数`);
+                    
                 } catch (e) {
                     console.error('❌ Desmos绘图错误:', e);
-                    console.error('表达式:', exprs);
+                    console.error('原始表达式:', exprs);
+                    
+                    // 尝试使用简单的表达式测试
+                    try {
+                        calculator.setExpression({
+                            id: 'test_line',
+                            latex: 'y = x',
+                            color: '#2d70b3'
+                        });
+                        console.log('✅ 测试直线绘制成功，说明Desmos工作正常');
+                    } catch (testError) {
+                        console.error('❌ 测试绘图也失败:', testError);
+                    }
                 }
             } else {
                 console.log('⚠️ 未找到GRAPH标记');
@@ -468,13 +533,7 @@
         function deleteMessage(msgElement) {
             if (confirm('确定要删除这条消息吗?')) {
                 const msgId = parseInt(msgElement.getAttribute('data-id'));
-                
-                // 从UI移除
                 msgElement.remove();
-                
-                // 从chatHistory中移除(需要找到对应的索引)
-                // 注意:这里简化处理,实际应该根据消息ID精确匹配
-                // 由于流式输出的特性,这里不做chatHistory的精确同步
             }
         }
 
@@ -579,6 +638,13 @@
 
         // 初始化加载历史记录
         loadHistory();
+        
+        // 页面加载完成后打印调试信息
+        window.addEventListener('load', function() {
+            console.log('📱 数学核心素养AI已加载');
+            console.log('🎯 Desmos API状态:', typeof Desmos !== 'undefined' ? '可用' : '不可用');
+            console.log('🧮 MathJax状态:', typeof MathJax !== 'undefined' ? '可用' : '不可用');
+        });
     </script>
 </body>
 </html>

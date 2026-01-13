@@ -258,20 +258,7 @@
         let calculator = null;
         let chatHistory = [{ 
             role: "system", 
-            content: `你是一个数学教育专家。要求:
-1. 矩阵用 pmatrix,行列式用 vmatrix。
-2. 展示分式嵌套行列式时必须完整。
-3. 变量包裹在 $ 中。
-4. 复杂公式使用 $$。
-5. **重要**：当回答涉及任何函数或公式时（包括概率密度函数、分布函数、物理公式等），必须在回答末尾添加 [GRAPH: 函数表达式] 标记。
-6. 函数表达式要求：使用标准数学表示，例如：
-   - 线性: [GRAPH: y=2x+1]
-   - 二次: [GRAPH: y=x^2]
-   - 三角: [GRAPH: y=sin(x)]
-   - 指数: [GRAPH: y=exp(x)]
-   - 高斯: [GRAPH: y=exp(-x^2/2)/sqrt(2*pi)]
-   - 多个函数用分号分隔: [GRAPH: y=sin(x); y=cos(x)]
-7. 即使用户只是询问函数名称（如"正态分布"、"状态密度函数"），也要给出完整公式并添加图形标记。` 
+            content: "你是一个数学教育专家。要求:1. 矩阵用 pmatrix,行列式用 vmatrix。2. 展示分式嵌套行列式时必须完整。3. 变量包裹在 $ 中。4. 复杂公式使用 $$。5. 当回答涉及函数时,在回答末尾添加 [GRAPH: 函数表达式] 标记,例如 [GRAPH: y=x^2] 或 [GRAPH: y=sin(x)]。" 
         }];
         let conversations = []; // 存储所有对话历史
         let messageCounter = 0; // 消息计数器
@@ -378,74 +365,25 @@
 
         // 自动检测并绘制函数
         function autoDrawFunction(text) {
-            console.log('🔍 检查文本中是否有GRAPH标记:', text.substring(0, 200));
-            
             const graphMatch = text.match(/\[GRAPH:\s*(.+?)\]/);
             if (graphMatch) {
-                console.log('✅ 找到GRAPH标记:', graphMatch[0]);
-                const exprs = graphMatch[1].trim();
-                
-                // 自动打开Desmos面板
-                desmosEl.style.display = 'block';
-                
-                // 初始化calculator
+                const expr = graphMatch[1].trim();
                 if (!calculator) {
-                    calculator = Desmos.GraphingCalculator(desmosEl, { 
-                        expressions: true, 
-                        settingsMenu: false 
-                    });
+                    desmosEl.style.display = 'block';
+                    calculator = Desmos.GraphingCalculator(desmosEl, { expressions: true, settingsMenu: false });
                 }
-                
                 try {
-                    // 清空之前的表达式
-                    calculator.setBlank();
-                    
-                    // 支持多个函数（用分号分隔）
-                    const expressionList = exprs.split(';').map(e => e.trim());
-                    
-                    expressionList.forEach((expr, index) => {
-                        // 为每个函数设置不同的颜色
-                        const colors = ['#2d70b3', '#388c46', '#6042a6', '#c74440', '#fa7e19', '#000000'];
-                        calculator.setExpression({ 
-                            id: `graph_${index}`,
-                            latex: expr,
-                            color: colors[index % colors.length]
-                        });
-                        console.log(`📊 绘制函数 ${index + 1}: ${expr}`);
-                    });
-                    
-                    console.log(`✅ 已绘制 ${expressionList.length} 个函数`);
+                    calculator.setExpression({ latex: expr });
                 } catch (e) {
-                    console.error('❌ Desmos绘图错误:', e);
-                    console.error('表达式:', exprs);
+                    console.error('Desmos绘图错误:', e);
                 }
-            } else {
-                console.log('⚠️ 未找到GRAPH标记');
             }
         }
 
         // 格式化输出
         function formatMathText(text) {
             let formatted = text.replace(/\\\\/g, '\\\\\\\\');
-            
-            // 保护GRAPH标记，避免被Markdown处理
-            // 将 [GRAPH: ...] 临时替换为特殊标记
-            const graphMarkers = [];
-            formatted = formatted.replace(/\[GRAPH:\s*(.+?)\]/g, (match) => {
-                const index = graphMarkers.length;
-                graphMarkers.push(match);
-                return `___GRAPH_MARKER_${index}___`;
-            });
-            
-            // 使用marked处理
-            formatted = marked.parse(formatted);
-            
-            // 恢复GRAPH标记
-            graphMarkers.forEach((marker, index) => {
-                formatted = formatted.replace(`___GRAPH_MARKER_${index}___`, marker);
-            });
-            
-            return formatted;
+            return marked.parse(formatted);
         }
 
         // 添加消息到UI

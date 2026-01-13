@@ -428,24 +428,10 @@
         function formatMathText(text) {
             let formatted = text.replace(/\\\\/g, '\\\\\\\\');
             
-            // 保护GRAPH标记，避免被Markdown处理
-            // 将 [GRAPH: ...] 临时替换为特殊标记
-            const graphMarkers = [];
-            formatted = formatted.replace(/\[GRAPH:\s*(.+?)\]/g, (match) => {
-                const index = graphMarkers.length;
-                graphMarkers.push(match);
-                return `___GRAPH_MARKER_${index}___`;
-            });
+            // 移除GRAPH标记（只用于触发绘图，不需要显示）
+            formatted = formatted.replace(/\[GRAPH:\s*(.+?)\]/g, '');
             
-            // 使用marked处理
-            formatted = marked.parse(formatted);
-            
-            // 恢复GRAPH标记
-            graphMarkers.forEach((marker, index) => {
-                formatted = formatted.replace(`___GRAPH_MARKER_${index}___`, marker);
-            });
-            
-            return formatted;
+            return marked.parse(formatted);
         }
 
         // 添加消息到UI

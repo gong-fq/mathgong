@@ -181,19 +181,17 @@
         function autoDrawFunction(text) {
             if (!text) return;
             text = text.replace(/```[\s\S]*?```/g, '');                  // 去代码块
-            const m = text.match(/\[GRAPH:\s*([^\]]+)\]/i);
-            if (!m) { console.log('[Desmos] 未找到GRAPH标记'); return; }
-            let expr = m[1].trim();
-            console.log('[Desmos] 抓到表达式 → ', expr);
-            const dict = { sin: 'sin', cos: 'cos', tan: 'tan', exp: 'exp', sqrt: 'sqrt', pi: '\\pi', 高斯: 'exp(-x^2/2)/\\sqrt{2\\pi}', 正态分布: 'exp(-(x-0)^2/2)/\\sqrt{2\\pi}' };
-            Object.keys(dict).forEach(k => { const reg = new RegExp('\\b' + k + '\\b', 'gi'); expr = expr.replace(reg, dict[k]); });
-            const pieces = expr.split(/[;；]/).map(s => s.trim()).filter(Boolean);
+            const marks = [...text.matchAll(/\[GRAPH:\s*([^\]]+)\]/gi)]; // 全局匹配
+            if (!marks.length) { console.log('[Desmos] 未检测到任何 GRAPH 标记'); return; }
+            const lastMark = marks[marks.length - 1][1].trim();          // 只取最后一个
+            console.log('[Desmos] 选用最后一次 GRAPH → ', lastMark);
+            const pieces = lastMark.split(/[;；]/).map(s => s.trim()).filter(Boolean);
             if (!pieces.length) return;
             desmosEl.style.display = 'block';
             if (!calculator) calculator = Desmos.GraphingCalculator(desmosEl, { expressions: true, settingsMenu: false });
             calculator.setBlank();
             const colors = ['#2d70b3', '#388c46', '#c74440', '#fa7e19', '#6042a6'];
-            pieces.forEach((e, i) => { try { calculator.setExpression({ id: `g${i}`, latex: e, color: colors[i % colors.length] }); console.log(`[Desmos] 绘制 → ${e}`); } catch (err) { console.error('[Desmos] 非法表达式 → ', e, err); } });
+            pieces.forEach((e, i) => { try { calculator.setExpression({ id: `g${i}`, latex: e, color: colors[i % colors.length] }); console.log(`[Desmos] 绘制 → ${e}`); } catch (err) { console.error('[Desmos] 表达式非法 → ', e, err); } });
         }
         document.getElementById('toggleDesmos').onclick = () => {
             const show = desmosEl.style.display === 'none' || desmosEl.style.display === '';
@@ -237,6 +235,11 @@
                         }
                     }
                 }
+                /* =====  去重：同一回答若出现多条GRAPH，只保留最后一个  ===== */
+                full = full.replace(/\[GRAPH:[^\]]+\]/gi, (m, offset, str) => {
+                    const ahead = str.slice(offset + m.length);
+                    return ahead.toLowerCase().includes('[graph:') ? '' : m;
+                });
                 if (window.MathJax) MathJax.typesetPromise([aiDiv.querySelector('div')]).then(() => autoDrawFunction(full));
                 chatHistory.push({ role: 'assistant', content: full }); saveCurrentConversation(content, full);
             } catch (e) {
